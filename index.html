@@ -801,8 +801,14 @@
     color: var(--stamp);
     white-space: nowrap;
     overflow: hidden;
+    text-overflow: ellipsis;
     min-width: 0;
+    /* RTL container makes overflow trim from the head; LTR child below
+       keeps the actual characters in normal left-to-right reading order. */
+    direction: rtl;
+    text-align: left;
   }
+  .nf-path > bdo { direction: ltr; }
   .nf-views {
     font-family: 'Source Serif 4', serif;
     font-feature-settings: 'lnum', 'tnum';
@@ -1123,11 +1129,10 @@ window.addEventListener('load', function () {
 <script data-cfasync="false" type="text/babel">
 const { useState, useEffect, useRef, useMemo } = React;
 
-// Trim long paths from the HEAD so the readable tail (slug / file name) stays visible.
-function trimHead(s, max = 56) {
+// Decode any %XX escapes so paths read naturally; CSS handles the head-trim.
+function decodePath(s) {
   if (!s) return s;
-  try { s = decodeURIComponent(s); } catch (e) {}
-  return s.length <= max ? s : "…" + s.slice(-max);
+  try { return decodeURIComponent(s); } catch (e) { return s; }
 }
 
 // Strip the trailing site-name suffix that ZhgChgLi pages add to their <title>.
@@ -1576,7 +1581,9 @@ function NotFoundPanel({ data }) {
           </div>
           {rows.slice(0, 8).map((r, i) => (
             <div className="nf-row" key={i}>
-              <span className="nf-path" title={r.path || '/'}>{trimHead(r.path || '/')}</span>
+              <span className="nf-path" title={r.path || '/'}>
+                <bdo>{decodePath(r.path || '/')}</bdo>
+              </span>
               <span className="nf-views">{(r.views || 0).toLocaleString()}</span>
             </div>
           ))}
