@@ -1005,27 +1005,6 @@
     font-style: normal;
   }
 
-  /* fullscreen toggle button — sits on the dark backdrop, top-right of viewport */
-  #fs-btn {
-    position: fixed;
-    top: 16px; right: 16px;
-    width: 32px; height: 32px;
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 6px;
-    color: #f1ebdc;
-    cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-    z-index: 100;
-    transition: background 0.2s, opacity 0.4s;
-    opacity: 0.4;
-    padding: 0;
-  }
-  #fs-btn:hover { background: rgba(255, 255, 255, 0.18); opacity: 1; }
-  #fs-btn svg { width: 16px; height: 16px; }
-  :fullscreen #fs-btn { opacity: 0.2; }
-  :fullscreen #fs-btn:hover { opacity: 1; }
-
   /* seconds variant — smaller subordinate flip cards */
   .flip-card.sec {
     width: 28px;
@@ -1094,29 +1073,11 @@
   }
 </script>
 
-<button id="fs-btn" aria-label="Toggle fullscreen">
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>
-  </svg>
-</button>
-
 <script data-cfasync="false">
-(function () {
-  var btn = document.getElementById('fs-btn');
-  if (!btn) return;
-  btn.addEventListener('click', function () {
-    var doc = document;
-    var inFs = doc.fullscreenElement || doc.webkitFullscreenElement;
-    if (!inFs) {
-      var el = doc.documentElement;
-      if (el.requestFullscreen) el.requestFullscreen();
-      else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
-    } else {
-      if (doc.exitFullscreen) doc.exitFullscreen();
-      else if (doc.webkitExitFullscreen) doc.webkitExitFullscreen();
-    }
-  });
-})();
+// Hide mobile Safari URL bar on load by nudging the scroll position.
+window.addEventListener('load', function () {
+  setTimeout(function () { window.scrollTo(0, 1); }, 0);
+});
 </script>
 
 <div id="wrap">
@@ -1242,16 +1203,8 @@ function Header({ now }) {
 // =================================================================
 // TAB 1 — STOCKS
 // =================================================================
-const STOCK_FALLBACK = [
-  { code: '2330', name: '台積電',     qty: 200, price: 1085, chg:  +1.4 },
-  { code: '2317', name: '鴻　海',     qty: 500, price:  238, chg:  -0.8 },
-  { code: '2454', name: '聯發科',     qty: 100, price: 1430, chg:  +2.3 },
-  { code: '2412', name: '中華電',     qty: 800, price:  127, chg:  +0.0 },
-  { code: '0050', name: '元大台灣50', qty: 300, price:  205, chg:  +0.7 },
-];
-
 function StocksPanel({ data }) {
-  const STOCK_DATA = data?.stocks?.holdings?.length ? data.stocks.holdings : STOCK_FALLBACK;
+  const STOCK_DATA = data?.stocks?.holdings || [];
   const totalValue = STOCK_DATA.reduce((s, x) => s + x.qty * x.price, 0);
   const totalChg = STOCK_DATA.reduce((s, x) => s + x.qty * x.price * (x.chg / 100), 0);
   const totalChgPct = (totalChg / (totalValue - totalChg)) * 100;
@@ -1316,24 +1269,16 @@ function StocksPanel({ data }) {
 // =================================================================
 // TAB 2 — GA
 // =================================================================
-const GA_TOP_PATHS_FALLBACK = [
-  { p: '/posts/swift-async-await-guide', v: 142 },
-  { p: '/',                              v:  98 },
-  { p: '/posts/swiftui-tips',            v:  54 },
-  { p: '/posts/medium-publish-tool',     v:  42 },
-  { p: '/about',                         v:  31 },
-];
-
 function GAPanel({ data }) {
   const GA_LIVE = data?.ga?.live || {};
   const GA_CUM  = data?.ga?.cum  || {};
-  const GA_TOP_PATHS = GA_LIVE.topPaths?.length ? GA_LIVE.topPaths : GA_TOP_PATHS_FALLBACK;
-  const GA_ACTIVE_USERS = GA_LIVE.activeUsers ?? 47;
-  const GA_PAGE_VIEWS   = GA_LIVE.pageViews   ?? 312;
-  const GA_USERS_30D    = GA_LIVE.users30d    ?? 18420;
-  const GA_AD_REVENUE   = GA_CUM.adRevenue    ?? 1284.36;
-  const GA_AD_CLICKS    = GA_CUM.adClicks     ?? 3421;
-  const GA_AD_VIEWS     = GA_CUM.adViews      ?? 12000;
+  const GA_TOP_PATHS = GA_LIVE.topPaths || [];
+  const GA_ACTIVE_USERS = GA_LIVE.activeUsers ?? 0;
+  const GA_PAGE_VIEWS   = GA_LIVE.pageViews   ?? 0;
+  const GA_USERS_30D    = GA_LIVE.users30d    ?? 0;
+  const GA_AD_REVENUE   = GA_CUM.adRevenue    ?? 0;
+  const GA_AD_CLICKS    = GA_CUM.adClicks     ?? 0;
+  const GA_AD_VIEWS     = GA_CUM.adViews      ?? 0;
   return (
     <div className="tab-panel-inner">
       <div className="panel-head">
@@ -1428,33 +1373,8 @@ function WeatherIcon({ type, size = 22 }) {
   return null;
 }
 
-const WEATHER_FALLBACK = [
-  {
-    zh: '臺　北', en: 'Taipei',
-    cond: 'Partly Cloudy', condZh: '多雲時晴', icon: 'partly',
-    temp: 22, hi: 25, lo: 19, feel: 21,
-    hourly: [
-      { h: '15', t: 23, type: 'partly', rain: 10 },
-      { h: '16', t: 23, type: 'cloud',  rain: 20 },
-      { h: '17', t: 22, type: 'cloud',  rain: 30 },
-      { h: '18', t: 21, type: 'rain',   rain: 60 },
-    ],
-  },
-  {
-    zh: '新　北', en: 'New Taipei',
-    cond: 'Light Rain', condZh: '局部短暫雨', icon: 'rain',
-    temp: 21, hi: 23, lo: 18, feel: 20,
-    hourly: [
-      { h: '15', t: 22, type: 'rain',  rain: 50 },
-      { h: '16', t: 21, type: 'rain',  rain: 70 },
-      { h: '17', t: 21, type: 'rain',  rain: 75 },
-      { h: '18', t: 20, type: 'cloud', rain: 40 },
-    ],
-  },
-];
-
 function WeatherPanel({ data }) {
-  const WEATHER_CITIES = data?.weather?.cities?.length ? data.weather.cities : WEATHER_FALLBACK;
+  const WEATHER_CITIES = data?.weather?.cities || [];
   return (
     <div className="tab-panel-inner">
       <div className="panel-head">
@@ -1497,15 +1417,8 @@ function WeatherPanel({ data }) {
 // =================================================================
 // TAB 4 — CALENDAR
 // =================================================================
-const CAL_FALLBACK = [
-  { time: '14:00 — 15:00', name: '與設計師對焦 · v2 review', loc: 'Zoom',          minutesUntil: 28 },
-  { time: '16:30 — 17:00', name: '週會 · 工程組',           loc: 'Meet · 線上',    minutesUntil: 178 },
-  { time: '19:30',         name: '晚餐 · 父母來訪',         loc: '永康街',         minutesUntil: 358 },
-  { time: '21:00',         name: '回看週報 · 寫月結',       loc: '書房',           minutesUntil: 448 },
-];
-
 function CalendarPanel({ data }) {
-  const CAL_EVENTS = data?.calendar?.events?.length ? data.calendar.events : CAL_FALLBACK;
+  const CAL_EVENTS = data?.calendar?.events || [];
   const todayEvents = CAL_EVENTS.filter(e => e.day === 'today');
   const tomorrowEvents = CAL_EVENTS.filter(e => e.day === 'tomorrow');
   // Events without a `day` tag (fallback demo data) → treated as today.
@@ -1573,13 +1486,6 @@ function CalendarPanel({ data }) {
 // =================================================================
 // TAB 5 — COUNTDOWN / D-DAY
 // =================================================================
-const CD_FALLBACK = [
-  { name: '出國・京都賞楓',      date: '2026-11-12', target: '2026-11-12' },
-  { name: '結婚紀念日',          date: '2026-06-08', target: '2026-06-08' },
-  { name: '年終 / Year End',     date: '2026-12-31', target: '2026-12-31' },
-  { name: '入職滿三年 · Day',    date: '2023-08-15', target: '2023-08-15', past: true },
-];
-
 function daysBetween(target, today) {
   const t = new Date(target);
   const d = new Date(today.getFullYear(), today.getMonth(), today.getDate());
@@ -1587,9 +1493,7 @@ function daysBetween(target, today) {
 }
 
 function CountdownPanel({ now, data }) {
-  const CD_EVENTS = data?.countdown?.events?.length
-    ? data.countdown.events.map(e => ({ ...e, date: e.target }))
-    : CD_FALLBACK;
+  const CD_EVENTS = (data?.countdown?.events || []).map(e => ({ ...e, date: e.target }));
   return (
     <div className="tab-panel-inner">
       <div className="panel-head">
@@ -1659,7 +1563,7 @@ function NotFoundPanel({ data }) {
 const TABS = [
   { id: 'stocks',  label: '持　股',     en: 'STOCKS',     Comp: StocksPanel },
   { id: 'ga',      label: '流　量',     en: 'TRAFFIC',    Comp: GAPanel },
-  { id: '404',     label: '未尋獲',     en: '404',        Comp: NotFoundPanel },
+  { id: '404',     label: ' 4 0 4',     en: '404',        Comp: NotFoundPanel },
   { id: 'weather', label: '天　氣',     en: 'WEATHER',    Comp: WeatherPanel },
   { id: 'cal',     label: '行事曆',     en: 'CALENDAR',   Comp: CalendarPanel },
   { id: 'cd',      label: '倒數日',     en: 'D-DAY',      Comp: CountdownPanel },
