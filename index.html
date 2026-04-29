@@ -804,6 +804,10 @@
     overflow: hidden;
     text-overflow: ellipsis;
     min-width: 0;
+    /* Trim from the head so the readable tail of the URL stays visible. */
+    direction: rtl;
+    text-align: left;
+    unicode-bidi: plaintext;
   }
   .nf-views {
     font-family: 'Source Serif 4', serif;
@@ -1005,6 +1009,27 @@
     font-style: normal;
   }
 
+  /* fullscreen toggle — top-right of the dark backdrop */
+  #fs-btn {
+    position: fixed;
+    top: 14px; right: 14px;
+    width: 32px; height: 32px;
+    border: 1px solid rgba(255,255,255,0.18);
+    background: rgba(255,255,255,0.08);
+    color: #f1ebdc;
+    border-radius: 6px;
+    padding: 0;
+    cursor: pointer;
+    z-index: 100;
+    display: flex; align-items: center; justify-content: center;
+    transition: opacity 0.3s, background 0.2s;
+    opacity: 0.4;
+    -webkit-tap-highlight-color: transparent;
+  }
+  #fs-btn:hover, #fs-btn:focus { opacity: 1; background: rgba(255,255,255,0.18); outline: none; }
+  #fs-btn svg { width: 16px; height: 16px; }
+  :fullscreen #fs-btn, :-webkit-full-screen #fs-btn { opacity: 0.15; }
+
   /* seconds variant — smaller subordinate flip cards */
   .flip-card.sec {
     width: 28px;
@@ -1073,11 +1098,45 @@
   }
 </script>
 
+<button id="fs-btn" type="button" aria-label="Toggle fullscreen">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>
+  </svg>
+</button>
+
 <script data-cfasync="false">
 // Hide mobile Safari URL bar on load by nudging the scroll position.
 window.addEventListener('load', function () {
   setTimeout(function () { window.scrollTo(0, 1); }, 0);
 });
+
+// Fullscreen toggle — works on Chrome, Edge, Firefox, Safari (with webkit prefix).
+(function () {
+  function inFs() {
+    return document.fullscreenElement
+        || document.webkitFullscreenElement
+        || document.msFullscreenElement;
+  }
+  function enter(el) {
+    var fn = el.requestFullscreen
+          || el.webkitRequestFullscreen
+          || el.msRequestFullscreen;
+    if (fn) fn.call(el).catch(function (e) { console.warn('[fs] enter', e); });
+  }
+  function exit() {
+    var fn = document.exitFullscreen
+          || document.webkitExitFullscreen
+          || document.msExitFullscreen;
+    if (fn) fn.call(document).catch(function (e) { console.warn('[fs] exit', e); });
+  }
+  document.addEventListener('DOMContentLoaded', function () {
+    var btn = document.getElementById('fs-btn');
+    if (!btn) return;
+    btn.addEventListener('click', function () {
+      if (inFs()) exit(); else enter(document.documentElement);
+    });
+  });
+})();
 </script>
 
 <div id="wrap">
@@ -1531,7 +1590,7 @@ function NotFoundPanel({ data }) {
   return (
     <div className="tab-panel-inner">
       <div className="panel-head">
-        <span className="panel-title">未　尋　獲</span>
+        <span className="panel-title">　4 0 4　</span>
         <span className="panel-title-en">404 · last 24 h</span>
       </div>
       {rows.length === 0 ? (
