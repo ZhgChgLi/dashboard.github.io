@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#f1ebdc">
+<link rel="manifest" href="manifest.json">
 <title>ZhgChgLi</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -772,6 +774,67 @@
     min-width: 0;
   }
 
+  /* === 404 not found === */
+  .nf-head {
+    font-size: 9px;
+    letter-spacing: 0.28em;
+    color: var(--ink-faint);
+    font-style: italic;
+    font-family: 'Source Serif 4', serif;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--hairline);
+    padding-bottom: 4px;
+    margin-bottom: 2px;
+    display: flex;
+    justify-content: space-between;
+  }
+  .nf-row {
+    display: grid;
+    grid-template-columns: 1fr 60px;
+    align-items: baseline;
+    padding: 4px 0;
+    border-bottom: 1px dashed var(--hairline);
+    font-size: 12px;
+  }
+  .nf-row:last-child { border-bottom: none; }
+  .nf-path {
+    font-family: 'Source Serif 4', serif;
+    color: var(--stamp);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+  }
+  .nf-views {
+    font-family: 'Source Serif 4', serif;
+    font-feature-settings: 'lnum', 'tnum';
+    text-align: right;
+    color: var(--ink);
+    font-weight: 600;
+  }
+  .nf-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 60px 0;
+    color: var(--ink-soft);
+  }
+  .nf-empty-zh {
+    font-family: 'Noto Serif TC', serif;
+    font-size: 18px;
+    letter-spacing: 0.3em;
+    color: var(--ink);
+  }
+  .nf-empty-en {
+    font-family: 'Source Serif 4', serif;
+    font-style: italic;
+    font-size: 11px;
+    color: var(--ink-faint);
+    letter-spacing: 0.15em;
+  }
+
   /* === Countdown === */
   .cd-grid {
     display: grid;
@@ -1061,6 +1124,13 @@ window.addEventListener('resize', fitStage);
 window.addEventListener('load', fitStage);
 fitStage();
 
+// Strip the trailing site-name suffix that ZhgChgLi pages add to their <title>.
+// e.g. "Apple Watch 米蘭錶帶開箱…  | ZhgChgLi Tech & Travel" → "Apple Watch 米蘭錶帶開箱…"
+function stripSiteSuffix(title) {
+  if (!title) return title;
+  return String(title).replace(/\s*[|｜]\s*ZhgChgLi[^|｜]*$/, "").trim();
+}
+
 // =================================================================
 // FLIP CLOCK
 // =================================================================
@@ -1278,12 +1348,12 @@ function GAPanel({ data }) {
             </div>
           </div>
           <div className="ga-paths-head">
-            <span>top pages · 網頁路徑</span>
+            <span>top pages · 網頁標題</span>
             <span>views</span>
           </div>
           {GA_TOP_PATHS.map((row, i) => (
             <div className="ga-path-row" key={i}>
-              <span className="ga-path-name">{row.p}</span>
+              <span className="ga-path-name">{stripSiteSuffix(row.p)}</span>
               <span className="ga-path-views">{row.v}</span>
             </div>
           ))}
@@ -1533,11 +1603,46 @@ function CountdownPanel({ now, data }) {
 }
 
 // =================================================================
+// TAB 6 — 404 NOT FOUND (last 24h)
+// =================================================================
+function NotFoundPanel({ data }) {
+  const rows = data?.notFound?.rows || [];
+  return (
+    <div className="tab-panel-inner">
+      <div className="panel-head">
+        <span className="panel-title">未　尋　獲</span>
+        <span className="panel-title-en">404 · last 24 h</span>
+      </div>
+      {rows.length === 0 ? (
+        <div className="nf-empty">
+          <div className="nf-empty-zh">無遺失頁面</div>
+          <div className="nf-empty-en">all clear · no 404s in the last day</div>
+        </div>
+      ) : (
+        <>
+          <div className="nf-head">
+            <span>path</span>
+            <span style={{textAlign:'right'}}>views</span>
+          </div>
+          {rows.slice(0, 8).map((r, i) => (
+            <div className="nf-row" key={i}>
+              <span className="nf-path">{r.path || '/'}</span>
+              <span className="nf-views">{(r.views || 0).toLocaleString()}</span>
+            </div>
+          ))}
+        </>
+      )}
+    </div>
+  );
+}
+
+// =================================================================
 // MAIN APP
 // =================================================================
 const TABS = [
   { id: 'stocks',  label: '持　股',     en: 'STOCKS',     Comp: StocksPanel },
   { id: 'ga',      label: '流　量',     en: 'TRAFFIC',    Comp: GAPanel },
+  { id: '404',     label: '未尋獲',     en: '404',        Comp: NotFoundPanel },
   { id: 'weather', label: '天　氣',     en: 'WEATHER',    Comp: WeatherPanel },
   { id: 'cal',     label: '行事曆',     en: 'CALENDAR',   Comp: CalendarPanel },
   { id: 'cd',      label: '倒數日',     en: 'D-DAY',      Comp: CountdownPanel },
