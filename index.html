@@ -894,6 +894,53 @@
     min-width: 28px;
   }
 
+  /* Setup-error overlay — shown when no key in localStorage or fetch returns empty */
+  .setup-error {
+    position: absolute;
+    inset: 0;
+    z-index: 50;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    padding: 32px;
+    text-align: center;
+    background: var(--bg);
+    color: var(--ink);
+  }
+  .setup-error .se-stamp {
+    font-family: 'Noto Serif TC', serif;
+    font-size: 14px;
+    letter-spacing: 0.5em;
+    color: var(--stamp);
+    border: 1.5px solid var(--stamp);
+    padding: 6px 18px 6px 22px;
+    transform: rotate(-2deg);
+  }
+  .setup-error .se-title {
+    font-family: 'Noto Serif TC', serif;
+    font-size: 22px;
+    letter-spacing: 0.18em;
+    color: var(--ink);
+  }
+  .setup-error .se-desc {
+    font-family: 'Source Serif 4', serif;
+    font-style: italic;
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    color: var(--ink-soft);
+    max-width: 540px;
+    line-height: 1.7;
+  }
+  .setup-error code {
+    font-family: 'Source Serif 4', serif;
+    background: var(--bg-deep);
+    padding: 1px 6px;
+    border: 1px solid var(--hairline);
+    font-style: normal;
+  }
+
   /* fullscreen toggle button — sits on the dark backdrop, top-right of viewport */
   #fs-btn {
     position: fixed;
@@ -1484,10 +1531,44 @@ const TAB_DURATION = 15000;
 
 const POLL_INTERVAL_MS = 60_000; // 1 min — cache itself refreshes every 5 min server-side
 
+function SetupError({ kind }) {
+  const titleZh = kind === "no-key" ? "金　鑰　未　設" : "資　料　無　法　取　得";
+  const titleEn = kind === "no-key" ? "No dashboard key configured" : "Empty response from server";
+  return (
+    <div className="setup-error">
+      <div className="se-stamp">未　驗　證</div>
+      <div className="se-title">{titleZh}</div>
+      <div className="se-desc" style={{fontStyle:'italic'}}>{titleEn}</div>
+      {kind === "no-key" ? (
+        <div className="se-desc">
+          首次使用請於網址加上一次性 hash：<br/>
+          <code>{location.origin + location.pathname}#key=&lt;your_key&gt;</code><br/>
+          金鑰會自動存入 localStorage，下次直接訪問即可。
+        </div>
+      ) : (
+        <div className="se-desc">
+          後端回了空資料，可能是金鑰錯誤或服務暫時不可用。<br/>
+          請確認 <code>localStorage.DASHBOARD_KEY</code> 與後端一致。
+        </div>
+      )}
+    </div>
+  );
+}
+
+function isEmptyPayload(d) {
+  if (!d) return true;
+  const keys = Object.keys(d);
+  if (keys.length === 0) return true;
+  // Server returns "{}" when unauthenticated; otherwise payload always has generatedAt.
+  return !d.generatedAt;
+}
+
 function App() {
   const [now, setNow] = useState(new Date());
   const [activeIdx, setActiveIdx] = useState(0);
   const [progress, setProgress] = useState(0);
+  const [hasKey] = useState(() => !!localStorage.getItem("DASHBOARD_KEY"));
+  const [authFailed, setAuthFailed] = useState(false);
   const [data, setData] = useState(window.DATA || {});
 
   // tick clock
@@ -1498,11 +1579,8 @@ function App() {
 
   // fetch data from GAS JSON endpoint; SW does stale-while-revalidate caching
   useEffect(() => {
+    if (!hasKey) return;
     const key = localStorage.getItem("DASHBOARD_KEY");
-    if (!key) {
-      console.error("[fetch] no DASHBOARD_KEY — append #key=... to URL once");
-      return;
-    }
     const url = GAS_URL + "?key=" + encodeURIComponent(key);
 
     const fetchData = async () => {
@@ -1510,10 +1588,13 @@ function App() {
         const res = await fetch(url, { redirect: "follow" });
         if (!res.ok) { console.error("[fetch]", res.status); return; }
         const json = await res.json();
-        if (json && !json.error) {
-          setData(json);
-          try { localStorage.setItem("DASHBOARD_DATA", JSON.stringify(json)); } catch (e) {}
+        if (isEmptyPayload(json)) {
+          setAuthFailed(true);
+          return;
         }
+        setAuthFailed(false);
+        setData(json);
+        try { localStorage.setItem("DASHBOARD_DATA", JSON.stringify(json)); } catch (e) {}
       } catch (e) { console.error("[fetch]", e); }
     };
     fetchData();
@@ -1547,6 +1628,9 @@ function App() {
   const handleTabClick = (i) => {
     setActiveIdx(i);
   };
+
+  if (!hasKey) return <SetupError kind="no-key" />;
+  if (authFailed) return <SetupError kind="empty" />;
 
   return (
     <>
