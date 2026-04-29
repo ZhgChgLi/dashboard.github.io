@@ -1241,26 +1241,35 @@
     .header { height: 72px; padding: 10px 14px 0 14px; }
     .hairline { top: 72px; left: 14px; right: 14px; }
     .date-line1 { font-size: 10px; letter-spacing: 0.24em; }
-    .date-num { font-size: 32px; }
-    .date-weekday { font-size: 16px; }
+    .date-num { font-size: 28px; }
+    .date-weekday { font-size: 14px; }
     .date-line2 { gap: 10px; }
     .date-line3 { font-size: 9px; letter-spacing: 0.18em; }
     .net-dot { width: 7px; height: 7px; margin-right: 6px; }
 
     /* — Flip clock — */
-    .flip-card { width: 34px; height: 48px; }
-    .flip-half, .flip-flap { font-size: 42px; line-height: 48px; }
-    .flip-half { height: 24px; }
-    .flip-flap { height: 24px; }
+    .flip-card { width: 30px; height: 42px; }
+    .flip-half, .flip-flap { font-size: 36px; line-height: 42px; }
+    .flip-half { height: 21px; }
+    .flip-flap { height: 21px; }
     .flip-half.top > span,
     .flip-half.bottom > span,
     .flip-flap.flap-top > span,
-    .flip-flap.flap-bottom > span { line-height: 48px; }
-    .flip-half.bottom > span { transform: translateY(-24px); }
-    .flip-flap.flap-bottom > span { transform: translateY(-24px); }
-    .clock-colon { font-size: 26px; height: 48px; line-height: 48px; padding: 0 2px; }
+    .flip-flap.flap-bottom > span { line-height: 42px; }
+    .flip-half.bottom > span { transform: translateY(-21px); }
+    .flip-flap.flap-bottom > span { transform: translateY(-21px); }
+    .clock-colon { font-size: 22px; height: 42px; line-height: 42px; padding: 0 2px; }
     .clock { gap: 2px; padding-top: 2px; }
     .flip-group { gap: 2px; }
+    /* seconds: scaled down so HH:MM:SS fits on iPhone-class widths */
+    .flip-card.sec { width: 22px; height: 32px; }
+    .flip-card.sec .flip-half,
+    .flip-card.sec .flip-flap { font-size: 28px; line-height: 32px; height: 16px; }
+    .flip-card.sec .flip-half > span,
+    .flip-card.sec .flip-flap > span { line-height: 32px; }
+    .flip-card.sec .flip-half.bottom > span,
+    .flip-card.sec .flip-flap.flap-bottom > span { transform: translateY(-16px); }
+    .clock-colon.sec { font-size: 18px; height: 32px; line-height: 32px; padding: 0 1px; }
 
     /* — Content — */
     .content { top: 80px; left: 14px; right: 14px; bottom: 60px; }
@@ -1368,20 +1377,10 @@
     .nf-section-en { font-size: 10px; letter-spacing: 0.16em; }
   }
 
-  /* Even tighter for very small phones */
+  /* Even tighter for very small phones — drop the seconds display entirely */
   @media (max-width: 380px) {
-    .date-num { font-size: 26px; }
-    .flip-card { width: 30px; height: 42px; }
-    .flip-half, .flip-flap { font-size: 36px; line-height: 42px; }
-    .flip-half { height: 21px; }
-    .flip-flap { height: 21px; }
-    .flip-half.top > span,
-    .flip-half.bottom > span,
-    .flip-flap.flap-top > span,
-    .flip-flap.flap-bottom > span { line-height: 42px; }
-    .flip-half.bottom > span { transform: translateY(-21px); }
-    .flip-flap.flap-bottom > span { transform: translateY(-21px); }
-    .clock-colon { font-size: 22px; height: 42px; line-height: 42px; }
+    .date-num { font-size: 24px; }
+    .flip-card.sec, .clock-colon.sec { display: none; }
     .stocks-row { grid-template-columns: 40px minmax(0, 1fr) 56px 64px; font-size: 12px; }
     .weather-temp { font-size: 48px; }
     .nf-row-ref, .nf-head-ref { grid-template-columns: 64px 1fr 44px; }
