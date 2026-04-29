@@ -39,6 +39,10 @@
     font-family: 'Noto Serif TC', 'Source Serif 4', Georgia, serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    /* iOS Safari auto-inflates "long" body text (e.g. URL paths) when it
+       thinks the user wants larger text, breaking our pixel-precise layout. */
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
   }
 
   #wrap {
