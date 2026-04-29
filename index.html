@@ -1247,6 +1247,17 @@ document.addEventListener('DOMContentLoaded', function () {
 <script data-cfasync="false" type="text/babel">
 const { useState, useEffect, useRef, useMemo } = React;
 
+// Render a "next refresh in mm:ss" label given an epoch-ms expiry timestamp.
+// Fed by the parent <App>'s `now` clock so it ticks every second.
+function refreshCountdown(refreshAt, now) {
+  if (!refreshAt) return null;
+  const ms = refreshAt - now.getTime();
+  if (ms <= 0) return "更新中…";
+  const total = Math.ceil(ms / 1000);
+  const m = Math.floor(total / 60), s = total % 60;
+  return `下次更新 ${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
 // Decode any %XX escapes so paths read naturally; CSS handles the head-trim.
 function decodePath(s) {
   if (!s) return s;
@@ -1354,18 +1365,19 @@ function Header({ now }) {
 // =================================================================
 // TAB 1 — STOCKS
 // =================================================================
-function StocksPanel({ data }) {
+function StocksPanel({ data, now }) {
   const STOCK_DATA = data?.stocks?.holdings || [];
   const totalValue = STOCK_DATA.reduce((s, x) => s + x.qty * x.price, 0);
   const totalChg = STOCK_DATA.reduce((s, x) => s + x.qty * x.price * (x.chg / 100), 0);
   const totalChgPct = (totalChg / (totalValue - totalChg)) * 100;
   const isUp = totalChg >= 0;
+  const refreshLabel = refreshCountdown(data?.stocks?.refreshAt, now) || "Portfolio · TWSE";
 
   return (
     <div className="tab-panel-inner">
       <div className="panel-head">
         <span className="panel-title">持　股</span>
-        <span className="panel-title-en">Portfolio · TWSE</span>
+        <span className="panel-title-en">{refreshLabel}</span>
       </div>
       <div className="stocks-summary">
         <div className="summary-block">
@@ -1420,7 +1432,7 @@ function StocksPanel({ data }) {
 // =================================================================
 // TAB 2 — GA
 // =================================================================
-function GAPanel({ data }) {
+function GAPanel({ data, now }) {
   const GA_LIVE = data?.ga?.live || {};
   const GA_CUM  = data?.ga?.cum  || {};
   const GA_TOP_PATHS = GA_LIVE.topPaths || [];
@@ -1434,7 +1446,9 @@ function GAPanel({ data }) {
     <div className="tab-panel-inner">
       <div className="panel-head">
         <span className="panel-title">流　量</span>
-        <span className="panel-title-en">Web Analytics · GA4</span>
+        <span className="panel-title-en">
+          {refreshCountdown(GA_LIVE.refreshAt, now) || "Web Analytics · GA4"}
+        </span>
       </div>
       <div className="ga-split">
         {/* === LEFT · realtime 30 min === */}
