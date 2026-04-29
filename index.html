@@ -875,12 +875,21 @@
     color: var(--ink-faint);
     letter-spacing: 0.15em;
   }
-  .nf-row-ref { grid-template-columns: 1fr 60px; align-items: start; }
-  .nf-ref-path { display: flex; flex-direction: column; gap: 2px; }
-  .nf-ref-landing {
-    font-size: 10px;
-    color: var(--ink-soft);
+  .nf-row-ref { grid-template-columns: 90px 1fr 60px; column-gap: 8px; }
+  .nf-ref-host {
+    font-family: 'Source Serif 4', serif;
     font-style: italic;
+    font-size: 11px;
+    color: var(--ink-soft);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+  }
+  .nf-head-ref {
+    display: grid;
+    grid-template-columns: 90px 1fr 60px;
+    column-gap: 8px;
   }
   .nf-empty-compact { padding: 16px 0; gap: 4px; }
   .nf-empty-compact .nf-empty-zh { font-size: 14px; letter-spacing: 0.2em; }
@@ -1784,6 +1793,11 @@ function CountdownPanel({ now, data }) {
 // noisy compared to genuine inbound links, so we sort them after everything else.
 const SEARCH_HOST_RE = /^(?:https?:\/\/)?(?:www\.)?(?:google\.com|bing\.com|localhost|127\.0\.0\.1|[a-z0-9-]+\.search\.yahoo\.com|duckduckgo\.com)(?:[/:?#]|$)/i;
 function isSearchHost(url) { return SEARCH_HOST_RE.test(url || ""); }
+function hostOf(url) {
+  if (!url) return "—";
+  try { return new URL(url).host.replace(/^www\./, ""); }
+  catch (e) { return url.replace(/^https?:\/\//, "").split("/")[0] || url; }
+}
 
 function NotFoundPanel({ data, now }) {
   const rows = data?.notFound?.rows || [];
@@ -1834,13 +1848,15 @@ function NotFoundPanel({ data, now }) {
         </div>
       ) : (
         <>
-          <div className="nf-head">
+          <div className="nf-head nf-head-ref">
+            <span>referrer</span>
             <span>landing</span>
             <span style={{textAlign:'right'}}>views</span>
           </div>
           {referrals.slice(0, showRows ? 6 : 12).map((r, i) => (
-            <div className="nf-row" key={i}>
-              <span className="nf-path" title={`${r.landing || '/'}\n← ${r.referrer || ''}`}>
+            <div className="nf-row nf-row-ref" key={i}>
+              <span className="nf-ref-host" title={r.referrer || ''}>{hostOf(r.referrer)}</span>
+              <span className="nf-path" title={r.landing || '/'}>
                 <bdo>{decodePath(r.landing || '/')}</bdo>
               </span>
               <span className="nf-views">{(r.views || 0).toLocaleString()}</span>
