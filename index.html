@@ -1361,8 +1361,7 @@ function GAPanel({ data }) {
               </div>
               <span className="ga-cum-num">
                 <span className="currency">US$</span>
-                {Math.floor(GA_AD_REVENUE).toLocaleString()}
-                <span className="unit">.{(GA_AD_REVENUE.toFixed(2).split('.')[1] || '00')}</span>
+                {GA_AD_REVENUE.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </span>
             </div>
             <div className="ga-cum-row">
