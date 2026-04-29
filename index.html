@@ -1056,13 +1056,20 @@
   // === Config ===
   const GAS_URL = "https://script.google.com/macros/s/AKfycbxJoTtqTisPq8ZjJvSBzqAkQ8UIVc5XS9JdbHggmV4vGQ45paDCXYpNNgQwEr7VPaPxGw/exec";
 
-  // === Key flow: read from URL hash on first visit, persist to localStorage ===
+  // === Key flow: accept ?key=... query OR #key=... hash. Persist to localStorage. ===
   (function () {
-    var hashParams = new URLSearchParams(location.hash.replace(/^#/, ""));
-    var hashKey = hashParams.get("key");
-    if (hashKey) {
-      localStorage.setItem("DASHBOARD_KEY", hashKey);
-      history.replaceState(null, "", location.pathname + location.search);
+    var query = new URLSearchParams(location.search).get("key");
+    var hash  = new URLSearchParams(location.hash.replace(/^#/, "")).get("key");
+    var key = query || hash;
+    if (key) {
+      localStorage.setItem("DASHBOARD_KEY", key);
+      // Strip the key from both query string and hash so it isn't kept in history.
+      var clean = location.pathname;
+      var qs = new URLSearchParams(location.search);
+      qs.delete("key");
+      var qsStr = qs.toString();
+      if (qsStr) clean += "?" + qsStr;
+      history.replaceState(null, "", clean);
     }
   })();
 
@@ -1081,25 +1088,29 @@
   }
 </script>
 
-<button id="fs-btn" aria-label="Toggle fullscreen" onclick="toggleFullscreen()">
+<button id="fs-btn" aria-label="Toggle fullscreen">
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
     <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>
   </svg>
 </button>
 
 <script data-cfasync="false">
-function toggleFullscreen() {
-  var doc = document;
-  var inFs = doc.fullscreenElement || doc.webkitFullscreenElement;
-  if (!inFs) {
-    var el = doc.documentElement;
-    if (el.requestFullscreen) el.requestFullscreen();
-    else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
-  } else {
-    if (doc.exitFullscreen) doc.exitFullscreen();
-    else if (doc.webkitExitFullscreen) doc.webkitExitFullscreen();
-  }
-}
+(function () {
+  var btn = document.getElementById('fs-btn');
+  if (!btn) return;
+  btn.addEventListener('click', function () {
+    var doc = document;
+    var inFs = doc.fullscreenElement || doc.webkitFullscreenElement;
+    if (!inFs) {
+      var el = doc.documentElement;
+      if (el.requestFullscreen) el.requestFullscreen();
+      else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+    } else {
+      if (doc.exitFullscreen) doc.exitFullscreen();
+      else if (doc.webkitExitFullscreen) doc.webkitExitFullscreen();
+    }
+  });
+})();
 </script>
 
 <div id="wrap">
@@ -1348,7 +1359,7 @@ function GAPanel({ data }) {
             </div>
           </div>
           <div className="ga-paths-head">
-            <span>top pages · 網頁標題</span>
+            <span>top pages · 網頁路徑與畫面類別</span>
             <span>views</span>
           </div>
           {GA_TOP_PATHS.map((row, i) => (
@@ -1661,7 +1672,8 @@ function SetupError({ kind }) {
       <div className="se-desc" style={{fontStyle:'italic'}}>{titleEn}</div>
       {kind === "no-key" ? (
         <div className="se-desc">
-          首次使用請於網址加上一次性 hash：<br/>
+          首次使用請於網址加上一次性金鑰（兩種寫法擇一）：<br/>
+          <code>{location.origin + location.pathname}?key=&lt;your_key&gt;</code><br/>
           <code>{location.origin + location.pathname}#key=&lt;your_key&gt;</code><br/>
           金鑰會自動存入 localStorage，下次直接訪問即可。
         </div>
