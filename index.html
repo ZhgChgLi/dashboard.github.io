@@ -5,7 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="theme-color" content="#f1ebdc">
+<meta name="theme-color" content="#f1ebdc" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1a1612" media="(prefers-color-scheme: dark)">
 <link rel="manifest" href="manifest.json">
 <title>ZhgChgLi</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -27,6 +28,34 @@
     --stamp-deep: #7a2820;
     --up: #2d5a3d;
     --down: #b94a3a;
+    --device-noise-rgb: 0.16, 0.14, 0.12;
+    --device-glow-1: rgba(255, 250, 235, 0.5);
+    --device-glow-2: rgba(160, 56, 46, 0.04);
+    --device-deckle: rgba(120, 90, 50, 0.08);
+    --page-shadow: rgba(0, 0, 0, 0.5);
+    --page-shadow-soft: rgba(0, 0, 0, 0.3);
+    --device-bg-outer: #14110d;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1d1815;
+      --bg-deep: #15110e;
+      --ink: #ece1cd;
+      --ink-soft: #a99c87;
+      --ink-faint: #7d7264;
+      --hairline: #3b342b;
+      --stamp: #d97560;
+      --stamp-deep: #b85a4a;
+      --up: #82c596;
+      --down: #e08a78;
+      --device-noise-rgb: 0.95, 0.90, 0.80;
+      --device-glow-1: rgba(255, 230, 180, 0.04);
+      --device-glow-2: rgba(217, 117, 96, 0.05);
+      --device-deckle: rgba(0, 0, 0, 0.5);
+      --page-shadow: rgba(0, 0, 0, 0.7);
+      --page-shadow-soft: rgba(0, 0, 0, 0.5);
+      --device-bg-outer: #0a0807;
+    }
   }
 
   * { box-sizing: border-box; }
@@ -34,7 +63,7 @@
   html, body {
     margin: 0; padding: 0;
     width: 100%; height: 100%;
-    background: #14110d;
+    background: var(--device-bg-outer);
     overflow: hidden;
     font-family: 'Noto Serif TC', 'Source Serif 4', Georgia, serif;
     -webkit-font-smoothing: antialiased;
@@ -60,15 +89,24 @@
     background: var(--bg);
     background-image:
       url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.16  0 0 0 0 0.14  0 0 0 0 0.12  0 0 0 0.08 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"),
-      radial-gradient(ellipse at 30% 20%, rgba(255,250,235,0.5), transparent 60%),
-      radial-gradient(ellipse at 80% 90%, rgba(160,56,46,0.04), transparent 60%);
+      radial-gradient(ellipse at 30% 20%, var(--device-glow-1), transparent 60%),
+      radial-gradient(ellipse at 80% 90%, var(--device-glow-2), transparent 60%);
     position: relative;
     overflow: hidden;
     box-shadow:
-      0 30px 80px rgba(0,0,0,0.5),
-      0 8px 24px rgba(0,0,0,0.3),
+      0 30px 80px var(--page-shadow),
+      0 8px 24px var(--page-shadow-soft),
       inset 0 0 0 1px rgba(0,0,0,0.05);
     color: var(--ink);
+  }
+  @media (prefers-color-scheme: dark) {
+    #device {
+      /* lighter speckles on dark base — same SVG technique, brighter feColorMatrix */
+      background-image:
+        url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.95  0 0 0 0 0.90  0 0 0 0 0.80  0 0 0 0.04 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"),
+        radial-gradient(ellipse at 30% 20%, var(--device-glow-1), transparent 60%),
+        radial-gradient(ellipse at 80% 90%, var(--device-glow-2), transparent 60%);
+    }
   }
 
   /* deckle edge - subtle paper border imperfection */
@@ -76,7 +114,7 @@
     content: '';
     position: absolute; inset: 0;
     pointer-events: none;
-    box-shadow: inset 0 0 60px rgba(120, 90, 50, 0.08);
+    box-shadow: inset 0 0 60px var(--device-deckle);
     z-index: 1;
   }
 
@@ -725,8 +763,6 @@
   /* === Calendar === */
   .cal-now {
     background: var(--bg-deep);
-    background-image:
-      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100'><rect width='100%' height='100%' fill='%23e8e0cc'/><line x1='0' y1='0' x2='100' y2='100' stroke='%23d4cdbf' stroke-width='0.3' opacity='0.4'/></svg>");
     border: 1px solid var(--hairline);
     padding: 14px 20px;
     position: relative;
