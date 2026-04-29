@@ -2175,7 +2175,13 @@ function SetupError({ kind }) {
       {kind === "no-key" ? (
         <div className="se-desc">
           也可從網址帶入一次：<code>?key=&lt;key&gt;</code> 或 <code>#key=&lt;key&gt;</code><br/>
-          送出後金鑰存入 localStorage，PWA 加到主畫面也能用。
+          送出後金鑰存入 localStorage，PWA 加到主畫面也能用。<br/>
+          沒有金鑰？<a href="#" onClick={(e) => {
+            e.preventDefault();
+            localStorage.setItem("DASHBOARD_KEY", "demo");
+            localStorage.removeItem("DASHBOARD_DATA");
+            location.reload();
+          }}>試用 Demo 模式</a>
         </div>
       ) : (
         <div className="se-desc">
