@@ -1412,16 +1412,19 @@ const CAL_FALLBACK = [
 
 function CalendarPanel({ data }) {
   const CAL_EVENTS = data?.calendar?.events?.length ? data.calendar.events : CAL_FALLBACK;
-  const todayEvents = CAL_EVENTS.filter(e => !e.day || e.day === 'today');
+  const todayEvents = CAL_EVENTS.filter(e => e.day === 'today');
   const tomorrowEvents = CAL_EVENTS.filter(e => e.day === 'tomorrow');
+  // Events without a `day` tag (fallback demo data) → treated as today.
+  const undatedEvents = CAL_EVENTS.filter(e => !e.day);
+  const todayLike = todayEvents.length ? todayEvents : undatedEvents;
 
   // Featured "即將" — today's next event; if none, tomorrow's first.
-  const next = todayEvents[0] || tomorrowEvents[0];
-  const isTomorrow = !todayEvents.length && !!tomorrowEvents.length;
+  const next = todayLike[0] || tomorrowEvents[0];
+  const isTomorrow = !todayLike.length && !!tomorrowEvents.length;
   // List below — rest of the same day as the featured event.
-  const rest = isTomorrow ? tomorrowEvents.slice(1) : todayEvents.slice(1);
+  const rest = isTomorrow ? tomorrowEvents.slice(1) : todayLike.slice(1);
 
-  const headerCount = todayEvents.length || tomorrowEvents.length;
+  const headerCount = todayLike.length || tomorrowEvents.length;
   const headerLabel = isTomorrow
     ? `Tomorrow · ${headerCount} event${headerCount === 1 ? '' : 's'}`
     : `Today · ${headerCount} event${headerCount === 1 ? '' : 's'}`;
