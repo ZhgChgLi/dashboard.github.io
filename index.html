@@ -875,6 +875,36 @@
     color: var(--ink-faint);
     letter-spacing: 0.15em;
   }
+  .nf-row-ref { grid-template-columns: 1fr 60px; align-items: start; }
+  .nf-ref-path { display: flex; flex-direction: column; gap: 2px; }
+  .nf-ref-landing {
+    font-size: 10px;
+    color: var(--ink-soft);
+    font-style: italic;
+  }
+  .nf-empty-compact { padding: 16px 0; gap: 4px; }
+  .nf-empty-compact .nf-empty-zh { font-size: 14px; letter-spacing: 0.2em; }
+  .nf-section-title {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-top: 6px;
+    margin-bottom: 4px;
+  }
+  .nf-section-title-spaced { margin-top: 18px; }
+  .nf-section-zh {
+    font-family: 'Noto Serif TC', serif;
+    font-size: 13px;
+    letter-spacing: 0.3em;
+    color: var(--ink);
+  }
+  .nf-section-en {
+    font-family: 'Source Serif 4', serif;
+    font-style: italic;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    color: var(--ink-faint);
+  }
 
   /* === Countdown === */
   .cd-grid {
@@ -1734,16 +1764,22 @@ function CountdownPanel({ now, data }) {
 // =================================================================
 function NotFoundPanel({ data }) {
   const rows = data?.notFound?.rows || [];
+  const referrals = data?.notFound?.referrals || [];
   return (
     <div className="tab-panel-inner">
       <div className="panel-head">
-        <span className="panel-title">　4 0 4　</span>
-        <span className="panel-title-en">404 · last 24 h</span>
+        <span className="panel-title">　參　考　</span>
+        <span className="panel-title-en">reference · last 24 h</span>
+      </div>
+
+      <div className="nf-section-title">
+        <span className="nf-section-zh">遺失頁面</span>
+        <span className="nf-section-en">404 paths</span>
       </div>
       {rows.length === 0 ? (
-        <div className="nf-empty">
+        <div className="nf-empty nf-empty-compact">
           <div className="nf-empty-zh">無遺失頁面</div>
-          <div className="nf-empty-en">all clear · no 404s in the last day</div>
+          <div className="nf-empty-en">all clear · no 404s</div>
         </div>
       ) : (
         <>
@@ -1751,10 +1787,37 @@ function NotFoundPanel({ data }) {
             <span>path</span>
             <span style={{textAlign:'right'}}>views</span>
           </div>
-          {rows.slice(0, 8).map((r, i) => (
+          {rows.slice(0, 5).map((r, i) => (
             <div className="nf-row" key={i}>
               <span className="nf-path" title={r.path || '/'}>
                 <bdo>{decodePath(r.path || '/')}</bdo>
+              </span>
+              <span className="nf-views">{(r.views || 0).toLocaleString()}</span>
+            </div>
+          ))}
+        </>
+      )}
+
+      <div className="nf-section-title nf-section-title-spaced">
+        <span className="nf-section-zh">網頁參照</span>
+        <span className="nf-section-en">referrer · landing</span>
+      </div>
+      {referrals.length === 0 ? (
+        <div className="nf-empty nf-empty-compact">
+          <div className="nf-empty-zh">暫無資料</div>
+          <div className="nf-empty-en">no data</div>
+        </div>
+      ) : (
+        <>
+          <div className="nf-head">
+            <span>referrer → landing</span>
+            <span style={{textAlign:'right'}}>views</span>
+          </div>
+          {referrals.slice(0, 6).map((r, i) => (
+            <div className="nf-row nf-row-ref" key={i}>
+              <span className="nf-path nf-ref-path">
+                <bdo title={r.referrer}>{decodePath(r.referrer)}</bdo>
+                <bdo className="nf-ref-landing" title={r.landing}>↳ {decodePath(r.landing || '/')}</bdo>
               </span>
               <span className="nf-views">{(r.views || 0).toLocaleString()}</span>
             </div>
@@ -1777,8 +1840,8 @@ const TABS = [
     // GA tab keeps rendering even with no realtime traffic (cumulative numbers
     // matter), so don't auto-skip.
     isEmpty: () => false },
-  { id: '404',     label: ' 4 0 4',     en: '404',        Comp: NotFoundPanel,
-    isEmpty: d => !d?.notFound?.rows?.length },
+  { id: '404',     label: '參　考',     en: 'REFERENCE',  Comp: NotFoundPanel,
+    isEmpty: d => !d?.notFound?.rows?.length && !d?.notFound?.referrals?.length },
   { id: 'weather', label: '天　氣',     en: 'WEATHER',    Comp: WeatherPanel,
     isEmpty: d => !d?.weather?.cities?.length },
   { id: 'cal',     label: '行事曆',     en: 'CALENDAR',   Comp: CalendarPanel,
