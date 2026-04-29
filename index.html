@@ -1246,7 +1246,7 @@ function GAPanel({ data }) {
   const GA_USERS_30D    = GA_LIVE.users30d    ?? 18420;
   const GA_AD_REVENUE   = GA_CUM.adRevenue    ?? 1284.36;
   const GA_AD_CLICKS    = GA_CUM.adClicks     ?? 3421;
-  const GA_TOTAL_VIEWS  = GA_CUM.totalViews   ?? 284531;
+  const GA_AD_VIEWS     = GA_CUM.adViews      ?? 12000;
   return (
     <div className="tab-panel-inner">
       <div className="panel-head">
@@ -1313,6 +1313,13 @@ function GAPanel({ data }) {
                 <span className="ga-cum-en">ad clicks · today</span>
               </div>
               <span className="ga-cum-num">{GA_AD_CLICKS.toLocaleString()}</span>
+            </div>
+            <div className="ga-cum-row">
+              <div className="ga-cum-left">
+                <span className="ga-cum-zh">廣告瀏覽</span>
+                <span className="ga-cum-en">ad views · today</span>
+              </div>
+              <span className="ga-cum-num">{GA_AD_VIEWS.toLocaleString()}</span>
             </div>
           </div>
         </div>
