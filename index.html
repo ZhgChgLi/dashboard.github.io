@@ -1762,14 +1762,15 @@ function CountdownPanel({ now, data }) {
 // =================================================================
 // TAB 6 — 404 NOT FOUND (last 24h)
 // =================================================================
-function NotFoundPanel({ data }) {
+function NotFoundPanel({ data, now }) {
   const rows = data?.notFound?.rows || [];
   const referrals = data?.notFound?.referrals || [];
+  const refreshLabel = refreshCountdown(data?.notFound?.refreshAt, now) || "reference · last 24 h";
   return (
     <div className="tab-panel-inner">
       <div className="panel-head">
         <span className="panel-title">　參　考　</span>
-        <span className="panel-title-en">reference · last 24 h</span>
+        <span className="panel-title-en">{refreshLabel}</span>
       </div>
 
       <div className="nf-section-title">
