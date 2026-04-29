@@ -992,8 +992,26 @@
   }
   .tabs {
     display: flex;
-    gap: 22px;
+    gap: 14px;
     flex: 1;
+  }
+  .tab-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .tab-check {
+    font-size: 11px;
+    color: var(--ink-faint);
+    cursor: pointer;
+    user-select: none;
+    line-height: 1;
+    padding: 2px;
+  }
+  .tab-check:hover { color: var(--stamp); }
+  .tab-item.tab-disabled .tab-label {
+    text-decoration: line-through;
+    opacity: 0.45;
   }
   .tab-label {
     font-family: 'Noto Serif TC', serif;
@@ -1762,10 +1780,21 @@ function CountdownPanel({ now, data }) {
 // =================================================================
 // TAB 6 — 404 NOT FOUND (last 24h)
 // =================================================================
+// Hosts treated as search engines / dev origins — referrals from these are
+// noisy compared to genuine inbound links, so we sort them after everything else.
+const SEARCH_HOST_RE = /^(?:https?:\/\/)?(?:www\.)?(?:google\.com|bing\.com|localhost|127\.0\.0\.1|[a-z0-9-]+\.search\.yahoo\.com|duckduckgo\.com)(?:[/:?#]|$)/i;
+function isSearchHost(url) { return SEARCH_HOST_RE.test(url || ""); }
+
 function NotFoundPanel({ data, now }) {
   const rows = data?.notFound?.rows || [];
-  const referrals = data?.notFound?.referrals || [];
+  const referralsRaw = data?.notFound?.referrals || [];
+  const referrals = [...referralsRaw].sort((a, b) => {
+    const sa = isSearchHost(a.referrer), sb = isSearchHost(b.referrer);
+    if (sa !== sb) return sa ? 1 : -1;
+    return (b.views || 0) - (a.views || 0);
+  });
   const refreshLabel = refreshCountdown(data?.notFound?.refreshAt, now) || "reference · last 24 h";
+  const showRows = rows.length > 0;
   return (
     <div className="tab-panel-inner">
       <div className="panel-head">
@@ -1773,17 +1802,12 @@ function NotFoundPanel({ data, now }) {
         <span className="panel-title-en">{refreshLabel}</span>
       </div>
 
-      <div className="nf-section-title">
-        <span className="nf-section-zh">遺失頁面</span>
-        <span className="nf-section-en">404 paths</span>
-      </div>
-      {rows.length === 0 ? (
-        <div className="nf-empty nf-empty-compact">
-          <div className="nf-empty-zh">無遺失頁面</div>
-          <div className="nf-empty-en">all clear · no 404s</div>
-        </div>
-      ) : (
+      {showRows && (
         <>
+          <div className="nf-section-title">
+            <span className="nf-section-zh">遺失頁面</span>
+            <span className="nf-section-en">404 paths</span>
+          </div>
           <div className="nf-head">
             <span>path</span>
             <span style={{textAlign:'right'}}>views</span>
@@ -1799,9 +1823,9 @@ function NotFoundPanel({ data, now }) {
         </>
       )}
 
-      <div className="nf-section-title nf-section-title-spaced">
+      <div className={`nf-section-title ${showRows ? 'nf-section-title-spaced' : ''}`}>
         <span className="nf-section-zh">網頁參照</span>
-        <span className="nf-section-en">referrer · landing</span>
+        <span className="nf-section-en">landing · referrer</span>
       </div>
       {referrals.length === 0 ? (
         <div className="nf-empty nf-empty-compact">
@@ -1811,14 +1835,13 @@ function NotFoundPanel({ data, now }) {
       ) : (
         <>
           <div className="nf-head">
-            <span>referrer → landing</span>
+            <span>landing</span>
             <span style={{textAlign:'right'}}>views</span>
           </div>
-          {referrals.slice(0, 6).map((r, i) => (
-            <div className="nf-row nf-row-ref" key={i}>
-              <span className="nf-path nf-ref-path">
-                <bdo title={r.referrer}>{decodePath(r.referrer)}</bdo>
-                <bdo className="nf-ref-landing" title={r.landing}>↳ {decodePath(r.landing || '/')}</bdo>
+          {referrals.slice(0, showRows ? 6 : 12).map((r, i) => (
+            <div className="nf-row" key={i}>
+              <span className="nf-path" title={`${r.landing || '/'}\n← ${r.referrer || ''}`}>
+                <bdo>{decodePath(r.landing || '/')}</bdo>
               </span>
               <span className="nf-views">{(r.views || 0).toLocaleString()}</span>
             </div>
@@ -1917,6 +1940,12 @@ function isEmptyPayload(d) {
   return !d.generatedAt;
 }
 
+const TABS_DISABLED_KEY = "DASHBOARD_TABS_DISABLED";
+function loadDisabledTabs() {
+  try { return new Set(JSON.parse(localStorage.getItem(TABS_DISABLED_KEY) || "[]")); }
+  catch (e) { return new Set(); }
+}
+
 function App() {
   const [now, setNow] = useState(new Date());
   const [activeIdx, setActiveIdx] = useState(0);
@@ -1925,6 +1954,18 @@ function App() {
   const [authFailed, setAuthFailed] = useState(false);
   const [data, setData] = useState(window.DATA || {});
   const [netError, setNetError] = useState(null); // { msg } | null
+  const [disabledTabs, setDisabledTabs] = useState(loadDisabledTabs);
+
+  const toggleTabEnabled = (id) => {
+    setDisabledTabs(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      try { localStorage.setItem(TABS_DISABLED_KEY, JSON.stringify([...next])); } catch (e) {}
+      return next;
+    });
+  };
+  const isTabSkippable = (T, d) =>
+    disabledTabs.has(T.id) || !!T.isEmpty?.(d);
 
   // tick clock
   useEffect(() => {
@@ -1978,10 +2019,13 @@ function App() {
     };
   }, []);
 
-  // tab cycler — skips tabs whose isEmpty(data) is true. Read data via ref
-  // so a fresh fetch every minute doesn't reset the 15s tab timer.
+  // tab cycler — skips tabs disabled by checkbox or whose isEmpty(data) is true.
+  // Read data + disabled set via refs so a fresh fetch / toggle doesn't reset the
+  // 15s tab timer.
   const dataRef = useRef(data);
   useEffect(() => { dataRef.current = data; }, [data]);
+  const disabledRef = useRef(disabledTabs);
+  useEffect(() => { disabledRef.current = disabledTabs; }, [disabledTabs]);
   useEffect(() => {
     const start = Date.now();
     const id = setInterval(() => {
@@ -1992,7 +2036,8 @@ function App() {
         setActiveIdx(i => {
           for (let n = 1; n <= TABS.length; n++) {
             const next = (i + n) % TABS.length;
-            if (!TABS[next].isEmpty?.(dataRef.current)) return next;
+            const T = TABS[next];
+            if (!disabledRef.current.has(T.id) && !T.isEmpty?.(dataRef.current)) return next;
           }
           return i;
         });
@@ -2000,6 +2045,16 @@ function App() {
     }, 80);
     return () => clearInterval(id);
   }, [activeIdx]);
+
+  // If the user disables the currently-active tab, jump to the next eligible one.
+  useEffect(() => {
+    if (!disabledTabs.has(TABS[activeIdx].id)) return;
+    for (let n = 1; n <= TABS.length; n++) {
+      const next = (activeIdx + n) % TABS.length;
+      const T = TABS[next];
+      if (!disabledTabs.has(T.id) && !T.isEmpty?.(data)) { setActiveIdx(next); return; }
+    }
+  }, [disabledTabs]);
 
   const handleTabClick = (i) => {
     setActiveIdx(i);
@@ -2028,15 +2083,24 @@ function App() {
 
       <div className="footer">
         <div className="tabs">
-          {TABS.map((T, i) => (
-            <span
-              key={T.id}
-              className={`tab-label ${i === activeIdx ? 'active' : ''}`}
-              onClick={() => handleTabClick(i)}
-            >
-              {T.label}
-            </span>
-          ))}
+          {TABS.map((T, i) => {
+            const enabled = !disabledTabs.has(T.id);
+            return (
+              <span key={T.id} className={`tab-item ${enabled ? '' : 'tab-disabled'}`}>
+                <span
+                  className="tab-check"
+                  onClick={(e) => { e.stopPropagation(); toggleTabEnabled(T.id); }}
+                  title={enabled ? "停用此分頁" : "啟用此分頁"}
+                >{enabled ? '☑' : '☐'}</span>
+                <span
+                  className={`tab-label ${i === activeIdx ? 'active' : ''}`}
+                  onClick={() => handleTabClick(i)}
+                >
+                  {T.label}
+                </span>
+              </span>
+            );
+          })}
         </div>
         <span className="progress-num">{String(activeIdx + 1).padStart(2, '0')}/{String(TABS.length).padStart(2, '0')}</span>
         <div className="progress">
