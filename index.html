@@ -1238,154 +1238,153 @@
    * ============================================================== */
   @media (max-width: 720px) {
     /* — Header — */
-    .header { height: 64px; padding: 8px 14px 0 14px; }
-    .hairline { top: 64px; left: 14px; right: 14px; }
-    .date-line1 { font-size: 9px; letter-spacing: 0.22em; }
-    .date-num { font-size: 26px; }
-    .date-weekday { font-size: 14px; }
-    .date-line2 { gap: 8px; }
-    .date-line3 { font-size: 8px; letter-spacing: 0.18em; }
-    .net-dot { width: 6px; height: 6px; margin-right: 6px; }
+    .header { height: 72px; padding: 10px 14px 0 14px; }
+    .hairline { top: 72px; left: 14px; right: 14px; }
+    .date-line1 { font-size: 10px; letter-spacing: 0.24em; }
+    .date-num { font-size: 32px; }
+    .date-weekday { font-size: 16px; }
+    .date-line2 { gap: 10px; }
+    .date-line3 { font-size: 9px; letter-spacing: 0.18em; }
+    .net-dot { width: 7px; height: 7px; margin-right: 6px; }
 
     /* — Flip clock — */
+    .flip-card { width: 34px; height: 48px; }
+    .flip-half, .flip-flap { font-size: 42px; line-height: 48px; }
+    .flip-half { height: 24px; }
+    .flip-flap { height: 24px; }
+    .flip-half.top > span,
+    .flip-half.bottom > span,
+    .flip-flap.flap-top > span,
+    .flip-flap.flap-bottom > span { line-height: 48px; }
+    .flip-half.bottom > span { transform: translateY(-24px); }
+    .flip-flap.flap-bottom > span { transform: translateY(-24px); }
+    .clock-colon { font-size: 26px; height: 48px; line-height: 48px; padding: 0 2px; }
+    .clock { gap: 2px; padding-top: 2px; }
+    .flip-group { gap: 2px; }
+
+    /* — Content — */
+    .content { top: 80px; left: 14px; right: 14px; bottom: 60px; }
+    .panel-head { margin-bottom: 10px; }
+    .panel-title { font-size: 14px; letter-spacing: 0.32em; }
+    .panel-title-en { font-size: 10px; letter-spacing: 0.18em; }
+
+    /* — Footer (tabs wrap) — */
+    .footer {
+      left: 14px; right: 14px;
+      bottom: 8px; height: auto;
+      flex-wrap: wrap; row-gap: 6px; column-gap: 10px;
+    }
+    .tabs { gap: 5px 10px; flex-wrap: wrap; flex: 1 1 100%; order: 1; }
+    .tab-label { font-size: 11px; letter-spacing: 0.22em; padding: 2px 0; }
+    .tab-check { font-size: 13px; padding: 0; }
+    .tab-item { gap: 3px; }
+    .progress-num { font-size: 10px; order: 2; }
+    .progress { width: 60px; order: 3; }
+
+    /* — Stocks (hide qty / cost / chg %, keep code · name · price · P&L) — */
+    .stocks-summary { gap: 16px; margin-bottom: 10px; }
+    .summary-value { font-size: 22px; }
+    .summary-label { font-size: 9px; letter-spacing: 0.24em; }
+    .stocks-row {
+      grid-template-columns: 44px minmax(0, 1fr) 64px 70px;
+      font-size: 13px;
+      gap: 5px;
+      padding: 6px 0;
+    }
+    .stocks-row.head { font-size: 9px; letter-spacing: 0.22em; }
+    .stocks-row > :nth-child(3),
+    .stocks-row > :nth-child(4),
+    .stocks-row > :nth-child(6) { display: none; }
+
+    /* — GA: stack realtime + cumulative — */
+    .ga-split { grid-template-columns: 1fr; gap: 14px; height: auto; }
+    .ga-section.cum {
+      padding-left: 0;
+      border-left: none;
+      padding-top: 14px;
+      border-top: 1px solid var(--hairline);
+    }
+    .ga-section.live { padding-right: 0; }
+    .ga-stat-num { font-size: 30px; }
+    .ga-live-stats { gap: 8px; margin-bottom: 10px; }
+    .ga-live-stats .ga-stat-num { font-size: 26px; }
+    .ga-stat-en { font-size: 9px; letter-spacing: 0.2em; }
+    .ga-stat-zh { font-size: 10px; }
+    .ga-cum-num { font-size: 18px; }
+    .ga-cum-zh { font-size: 12px; }
+    .ga-cum-en { font-size: 9px; }
+    .ga-path-row { font-size: 13px; }
+
+    /* — Weather: stack two cities — */
+    .weather-split { grid-template-columns: 1fr; height: auto; }
+    .weather-city { padding-right: 0; padding-bottom: 12px; }
+    .weather-city + .weather-city {
+      padding-left: 0; padding-top: 12px;
+      border-left: none;
+      border-top: 1px solid var(--hairline);
+    }
+    .weather-temp { font-size: 58px; }
+    .weather-temp .deg { font-size: 22px; top: 3px; }
+    .weather-loc { font-size: 16px; letter-spacing: 0.3em; }
+    .weather-loc-en { font-size: 9px; }
+    .weather-cond { font-size: 11px; }
+    .weather-hilo { font-size: 12px; }
+    .hour-temp { font-size: 14px; }
+    .hour-time { font-size: 10px; }
+
+    /* — Calendar — */
+    .cal-now { padding: 12px 16px; margin-bottom: 10px; }
+    .cal-event-title { font-size: 16px; }
+    .cal-event-meta { font-size: 11px; max-width: none; }
+    .cal-cd-num { font-size: 38px; }
+    .cal-cd-num.cal-cd-tmr { font-size: 26px; }
+    .cal-cd-unit { font-size: 10px; letter-spacing: 0.3em; }
+    .cal-row {
+      grid-template-columns: 64px minmax(0, 1fr) minmax(0, 90px);
+      gap: 10px;
+      font-size: 13px;
+    }
+    .cal-allday { padding: 5px 10px; gap: 10px; margin-bottom: 8px; }
+    .cal-allday-list { font-size: 13px; }
+
+    /* — Countdown: 2-col → 1-col — */
+    .cd-grid { grid-template-columns: 1fr; gap: 8px; }
+    .cd-stamp { width: 54px; height: 54px; }
+    .cd-item { grid-template-columns: 58px 1fr; gap: 12px; padding: 5px 0; }
+    .cd-num { font-size: 22px; }
+    .cd-day-label { font-size: 9px; }
+    .cd-name { font-size: 14px; }
+    .cd-date { font-size: 11px; }
+    .cd-elapsed { font-size: 11px; }
+
+    /* — Reference (404 + referrals) — */
+    .nf-row-ref, .nf-head-ref {
+      grid-template-columns: 78px 1fr 50px;
+      column-gap: 8px;
+    }
+    .nf-ref-host { font-size: 12px; }
+    .nf-row { font-size: 13px; }
+    .nf-section-zh { font-size: 13px; letter-spacing: 0.22em; }
+    .nf-section-en { font-size: 10px; letter-spacing: 0.16em; }
+  }
+
+  /* Even tighter for very small phones */
+  @media (max-width: 380px) {
+    .date-num { font-size: 26px; }
     .flip-card { width: 30px; height: 42px; }
     .flip-half, .flip-flap { font-size: 36px; line-height: 42px; }
     .flip-half { height: 21px; }
-    .flip-half.bottom > span { transform: translateY(-21px); }
     .flip-flap { height: 21px; }
-    .flip-flap.flap-bottom > span { transform: translateY(-21px); }
     .flip-half.top > span,
     .flip-half.bottom > span,
     .flip-flap.flap-top > span,
     .flip-flap.flap-bottom > span { line-height: 42px; }
     .flip-half.bottom > span { transform: translateY(-21px); }
     .flip-flap.flap-bottom > span { transform: translateY(-21px); }
-    .clock-colon { font-size: 22px; height: 42px; line-height: 42px; padding: 0 2px; }
-    .clock { gap: 2px; padding-top: 2px; }
-    .flip-group { gap: 2px; }
-
-    /* — Content — */
-    .content { top: 72px; left: 14px; right: 14px; bottom: 56px; }
-    .panel-head { margin-bottom: 8px; }
-    .panel-title { font-size: 12px; letter-spacing: 0.32em; }
-    .panel-title-en { font-size: 9px; letter-spacing: 0.18em; }
-
-    /* — Footer (tabs wrap) — */
-    .footer {
-      left: 14px; right: 14px;
-      bottom: 6px; height: auto;
-      flex-wrap: wrap; row-gap: 6px; column-gap: 10px;
-    }
-    .tabs { gap: 4px 10px; flex-wrap: wrap; flex: 1 1 100%; order: 1; }
-    .tab-label { font-size: 9px; letter-spacing: 0.22em; padding: 2px 0; }
-    .tab-check { font-size: 11px; padding: 0; }
-    .tab-item { gap: 3px; }
-    .progress-num { font-size: 9px; order: 2; }
-    .progress { width: 60px; order: 3; }
-
-    /* — Stocks (hide qty / cost / chg %, keep code · name · price · P&L) — */
-    .stocks-summary { gap: 14px; margin-bottom: 8px; }
-    .summary-value { font-size: 18px; }
-    .summary-label { font-size: 8px; letter-spacing: 0.22em; }
-    .stocks-row {
-      grid-template-columns: 38px minmax(0, 1fr) 56px 60px;
-      font-size: 11px;
-      gap: 4px;
-      padding: 5px 0;
-    }
-    .stocks-row.head { font-size: 8px; letter-spacing: 0.2em; }
-    .stocks-row > :nth-child(3),
-    .stocks-row > :nth-child(4),
-    .stocks-row > :nth-child(6) { display: none; }
-
-    /* — GA: stack realtime + cumulative — */
-    .ga-split { grid-template-columns: 1fr; gap: 12px; height: auto; }
-    .ga-section.cum {
-      padding-left: 0;
-      border-left: none;
-      padding-top: 12px;
-      border-top: 1px solid var(--hairline);
-    }
-    .ga-section.live { padding-right: 0; }
-    .ga-stat-num { font-size: 24px; }
-    .ga-live-stats { gap: 6px; margin-bottom: 8px; }
-    .ga-live-stats .ga-stat-num { font-size: 22px; }
-    .ga-stat-en { font-size: 8px; letter-spacing: 0.18em; }
-    .ga-stat-zh { font-size: 9px; }
-    .ga-cum-num { font-size: 16px; }
-    .ga-cum-zh { font-size: 11px; }
-    .ga-cum-en { font-size: 8px; }
-
-    /* — Weather: stack two cities — */
-    .weather-split { grid-template-columns: 1fr; height: auto; }
-    .weather-city { padding-right: 0; padding-bottom: 10px; }
-    .weather-city + .weather-city {
-      padding-left: 0; padding-top: 10px;
-      border-left: none;
-      border-top: 1px solid var(--hairline);
-    }
+    .clock-colon { font-size: 22px; height: 42px; line-height: 42px; }
+    .stocks-row { grid-template-columns: 40px minmax(0, 1fr) 56px 64px; font-size: 12px; }
     .weather-temp { font-size: 48px; }
-    .weather-temp .deg { font-size: 18px; top: 2px; }
-    .weather-loc { font-size: 14px; letter-spacing: 0.3em; }
-    .weather-loc-en { font-size: 8px; }
-    .weather-cond { font-size: 10px; }
-    .weather-hilo { font-size: 11px; }
-    .hour-temp { font-size: 12px; }
-    .hour-time { font-size: 9px; }
-
-    /* — Calendar — */
-    .cal-now { padding: 10px 14px; margin-bottom: 8px; }
-    .cal-event-title { font-size: 14px; }
-    .cal-event-meta { font-size: 9px; max-width: none; }
-    .cal-cd-num { font-size: 32px; }
-    .cal-cd-num.cal-cd-tmr { font-size: 22px; }
-    .cal-cd-unit { font-size: 9px; letter-spacing: 0.3em; }
-    .cal-row {
-      grid-template-columns: 56px minmax(0, 1fr) minmax(0, 80px);
-      gap: 8px;
-      font-size: 11px;
-    }
-    .cal-allday { padding: 4px 8px; gap: 8px; margin-bottom: 6px; }
-    .cal-allday-list { font-size: 11px; }
-
-    /* — Countdown: 2-col → 1-col — */
-    .cd-grid { grid-template-columns: 1fr; gap: 6px; }
-    .cd-stamp { width: 48px; height: 48px; }
-    .cd-item { grid-template-columns: 52px 1fr; gap: 10px; padding: 4px 0; }
-    .cd-num { font-size: 18px; }
-    .cd-day-label { font-size: 8px; }
-    .cd-name { font-size: 12px; }
-    .cd-date { font-size: 9px; }
-    .cd-elapsed { font-size: 9px; }
-
-    /* — Reference (404 + referrals) — */
-    .nf-row-ref, .nf-head-ref {
-      grid-template-columns: 64px 1fr 44px;
-      column-gap: 6px;
-    }
-    .nf-ref-host { font-size: 10px; }
-    .nf-row { font-size: 11px; }
-    .nf-section-zh { font-size: 11px; letter-spacing: 0.22em; }
-    .nf-section-en { font-size: 9px; letter-spacing: 0.14em; }
-  }
-
-  /* Even tighter for very small phones */
-  @media (max-width: 380px) {
-    .date-num { font-size: 22px; }
-    .flip-card { width: 26px; height: 36px; }
-    .flip-half, .flip-flap { font-size: 30px; line-height: 36px; }
-    .flip-half { height: 18px; }
-    .flip-half.bottom > span { transform: translateY(-18px); }
-    .flip-flap { height: 18px; }
-    .flip-flap.flap-bottom > span { transform: translateY(-18px); }
-    .flip-half.top > span,
-    .flip-half.bottom > span,
-    .flip-flap.flap-top > span,
-    .flip-flap.flap-bottom > span { line-height: 36px; }
-    .clock-colon { font-size: 20px; height: 36px; line-height: 36px; }
-    .stocks-row { grid-template-columns: 34px minmax(0, 1fr) 50px 56px; font-size: 10px; }
-    .weather-temp { font-size: 40px; }
-    .nf-row-ref, .nf-head-ref { grid-template-columns: 56px 1fr 40px; }
+    .nf-row-ref, .nf-head-ref { grid-template-columns: 64px 1fr 44px; }
   }
 </style>
 </head>
