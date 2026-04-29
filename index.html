@@ -942,6 +942,13 @@
     letter-spacing: 0.15em;
     font-feature-settings: 'lnum';
   }
+  .cd-elapsed {
+    font-family: 'Noto Serif TC', serif;
+    font-size: 10px;
+    color: var(--ink-soft);
+    letter-spacing: 0.1em;
+    margin-top: 1px;
+  }
 
   /* === Footer: tab indicators + progress === */
   .footer {
@@ -1674,6 +1681,19 @@ function daysBetween(target, today) {
   return Math.round((t - d) / 86400000);
 }
 
+// Floor-to-month elapsed since `origDate` (e.g. birthday) → "X 年 Y 個月".
+function yearsMonthsSince(origDate, today) {
+  if (!origDate) return null;
+  const o = new Date(origDate);
+  if (isNaN(o)) return null;
+  let years = today.getFullYear() - o.getFullYear();
+  let months = today.getMonth() - o.getMonth();
+  if (today.getDate() < o.getDate()) months -= 1;
+  if (months < 0) { years -= 1; months += 12; }
+  if (years < 0) return null;
+  return { years, months };
+}
+
 function CountdownPanel({ now, data }) {
   const CD_EVENTS = (data?.countdown?.events || []).map(e => ({ ...e, date: e.target }));
   return (
@@ -1687,6 +1707,7 @@ function CountdownPanel({ now, data }) {
           const diff = daysBetween(e.target, now);
           const isPast = diff < 0;
           const num = Math.abs(diff);
+          const elapsed = e.repeat === 'yearly' ? yearsMonthsSince(e.origDate, now) : null;
           return (
             <div className="cd-item" key={i}>
               <div className={`cd-stamp ${isPast ? 'past' : ''}`}>
@@ -1696,6 +1717,9 @@ function CountdownPanel({ now, data }) {
               <div className="cd-info">
                 <div className="cd-name">{e.name}</div>
                 <div className="cd-date">{e.date}{isPast ? ` · 已過 ${num} 天` : ` · 還有 ${num} 天`}</div>
+                {elapsed && (
+                  <div className="cd-elapsed">已經過了 {elapsed.years} 年 {elapsed.months} 個月</div>
+                )}
               </div>
             </div>
           );
