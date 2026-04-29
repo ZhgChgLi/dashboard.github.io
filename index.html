@@ -1678,12 +1678,21 @@ function NotFoundPanel({ data }) {
 // MAIN APP
 // =================================================================
 const TABS = [
-  { id: 'stocks',  label: '持　股',     en: 'STOCKS',     Comp: StocksPanel },
-  { id: 'ga',      label: '流　量',     en: 'TRAFFIC',    Comp: GAPanel },
-  { id: '404',     label: ' 4 0 4',     en: '404',        Comp: NotFoundPanel },
-  { id: 'weather', label: '天　氣',     en: 'WEATHER',    Comp: WeatherPanel },
-  { id: 'cal',     label: '行事曆',     en: 'CALENDAR',   Comp: CalendarPanel },
-  { id: 'cd',      label: '倒數日',     en: 'D-DAY',      Comp: CountdownPanel },
+  { id: 'stocks',  label: '持　股',     en: 'STOCKS',     Comp: StocksPanel,
+    // Stocks tab always shown (even with empty holdings) — user keeps it visible.
+    isEmpty: () => false },
+  { id: 'ga',      label: '流　量',     en: 'TRAFFIC',    Comp: GAPanel,
+    // GA tab keeps rendering even with no realtime traffic (cumulative numbers
+    // matter), so don't auto-skip.
+    isEmpty: () => false },
+  { id: '404',     label: ' 4 0 4',     en: '404',        Comp: NotFoundPanel,
+    isEmpty: d => !d?.notFound?.rows?.length },
+  { id: 'weather', label: '天　氣',     en: 'WEATHER',    Comp: WeatherPanel,
+    isEmpty: d => !d?.weather?.cities?.length },
+  { id: 'cal',     label: '行事曆',     en: 'CALENDAR',   Comp: CalendarPanel,
+    isEmpty: d => !d?.calendar?.events?.length },
+  { id: 'cd',      label: '倒數日',     en: 'D-DAY',      Comp: CountdownPanel,
+    isEmpty: d => !d?.countdown?.events?.length },
 ];
 const TAB_DURATION = 15000;
 
@@ -1813,7 +1822,10 @@ function App() {
     };
   }, []);
 
-  // tab cycler
+  // tab cycler — skips tabs whose isEmpty(data) is true. Read data via ref
+  // so a fresh fetch every minute doesn't reset the 15s tab timer.
+  const dataRef = useRef(data);
+  useEffect(() => { dataRef.current = data; }, [data]);
   useEffect(() => {
     const start = Date.now();
     const id = setInterval(() => {
@@ -1821,7 +1833,13 @@ function App() {
       const p = Math.min(elapsed / TAB_DURATION, 1);
       setProgress(p);
       if (p >= 1) {
-        setActiveIdx(i => (i + 1) % TABS.length);
+        setActiveIdx(i => {
+          for (let n = 1; n <= TABS.length; n++) {
+            const next = (i + n) % TABS.length;
+            if (!TABS[next].isEmpty?.(dataRef.current)) return next;
+          }
+          return i;
+        });
       }
     }, 80);
     return () => clearInterval(id);
