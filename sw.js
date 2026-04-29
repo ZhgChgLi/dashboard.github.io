@@ -2,11 +2,15 @@
 //
 // Strategies:
 //   1. Static + CDN assets   → cache-first, network fallback
-//   2. GAS JSON endpoint     → stale-while-revalidate, postMessage on update
+//   2. Navigation (HTML)     → network-first so updates show without manual reload
+//   3. GAS JSON endpoint     → NETWORK-FIRST: prefer fresh data; only fall back
+//                              to the cache when the network throws (offline,
+//                              DNS error, etc). On fallback, postMessage
+//                              `data-stale` so the UI can show an error chip.
 //
 // Bump CACHE_VERSION when you change static assets to force clients to refresh.
 
-const CACHE_VERSION = "v2";
+const CACHE_VERSION = "v3";
 const STATIC_CACHE = "dashboard-static-" + CACHE_VERSION;
 const PRECACHE_URLS = [
   "./",
@@ -39,19 +43,16 @@ self.addEventListener("fetch", (event) => {
 
   const url = new URL(req.url);
 
-  // === GAS JSON: stale-while-revalidate ===
   if (GAS_HOSTS.includes(url.host)) {
     event.respondWith(handleGas(req));
     return;
   }
 
-  // === Navigation (HTML): network-first so updates show without manual reload ===
-  if (req.mode === "navigate" || (req.destination === "document")) {
+  if (req.mode === "navigate" || req.destination === "document") {
     event.respondWith(handleNetworkFirst(req));
     return;
   }
 
-  // === Static assets + CDN (JS / CSS / fonts): cache-first ===
   event.respondWith(handleStatic(req));
 });
 
@@ -59,7 +60,7 @@ async function handleNetworkFirst(req) {
   try {
     const res = await fetch(req);
     if (res && (res.ok || res.type === "opaque")) {
-      const cache = await caches.open(STATIC);
+      const cache = await caches.open(STATIC_CACHE);
       try { await cache.put(req, res.clone()); } catch (e) {}
     }
     return res;
@@ -71,22 +72,24 @@ async function handleNetworkFirst(req) {
 
 async function handleGas(req) {
   const cache = await caches.open(STATIC_CACHE);
-  const cached = await cache.match(req);
-
-  const networkPromise = fetch(req, { redirect: "follow" })
-    .then(async (res) => {
-      // Only cache successful or opaque-redirect responses.
-      if (res && (res.ok || res.type === "opaqueredirect")) {
-        try { await cache.put(req, res.clone()); } catch (e) {}
-        // Notify all clients so they re-render with fresh data.
-        const clients = await self.clients.matchAll();
-        clients.forEach((c) => c.postMessage({ type: "data-updated" }));
-      }
-      return res;
-    })
-    .catch(() => cached || Promise.reject(new Error("offline")));
-
-  return cached || networkPromise;
+  try {
+    const res = await fetch(req, { redirect: "follow" });
+    if (res && (res.ok || res.type === "opaqueredirect")) {
+      try { await cache.put(req, res.clone()); } catch (e) {}
+    }
+    return res;
+  } catch (err) {
+    const cached = await cache.match(req);
+    if (cached) {
+      const clients = await self.clients.matchAll();
+      clients.forEach((c) => c.postMessage({
+        type: "data-stale",
+        reason: String((err && err.message) || err) || "network error"
+      }));
+      return cached;
+    }
+    throw err;
+  }
 }
 
 async function handleStatic(req) {
@@ -103,3 +106,7 @@ async function handleStatic(req) {
     return cached || Response.error();
   }
 }
+
+self.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "skip-waiting") self.skipWaiting();
+});

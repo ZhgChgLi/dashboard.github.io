@@ -1043,6 +1043,50 @@
   .se-form button:hover { background: var(--stamp-deep); }
   .se-form button:active { transform: translateY(1px); }
 
+  /* Floating refresh button — semi-transparent, bottom-right of viewport */
+  #refresh-btn {
+    position: fixed;
+    bottom: 16px; right: 16px;
+    width: 36px; height: 36px;
+    border: 1px solid rgba(255,255,255,0.2);
+    background: rgba(20,17,13,0.55);
+    color: #f1ebdc;
+    border-radius: 50%;
+    padding: 0;
+    cursor: pointer;
+    z-index: 100;
+    display: flex; align-items: center; justify-content: center;
+    transition: opacity 0.3s, background 0.2s, transform 0.6s;
+    opacity: 0.4;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    -webkit-tap-highlight-color: transparent;
+  }
+  #refresh-btn:hover, #refresh-btn:focus { opacity: 1; background: rgba(20,17,13,0.85); outline: none; }
+  #refresh-btn svg { width: 16px; height: 16px; }
+  #refresh-btn.spinning { pointer-events: none; opacity: 1; }
+  #refresh-btn.spinning svg { animation: refresh-spin 0.9s linear infinite; }
+  @keyframes refresh-spin { to { transform: rotate(360deg); } }
+
+  /* Stale / error chip pinned to top-center of the device */
+  .net-chip {
+    position: absolute;
+    top: 8px; left: 50%;
+    transform: translateX(-50%);
+    z-index: 6;
+    padding: 4px 12px;
+    background: rgba(160,56,46,0.92);
+    color: #f5efde;
+    font-family: 'Source Serif 4', serif;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    font-style: italic;
+    border-radius: 12px;
+    pointer-events: none;
+    animation: chip-fade 0.4s ease;
+  }
+  @keyframes chip-fade { from { opacity: 0; transform: translate(-50%, -4px); } to { opacity: 1; transform: translateX(-50%); } }
+
   /* seconds variant — smaller subordinate flip cards */
   .flip-card.sec {
     width: 28px;
@@ -1111,10 +1155,47 @@
   }
 </script>
 
+<button id="refresh-btn" type="button" aria-label="Hard refresh">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M3 12a9 9 0 0 1 15.5-6.4L21 8"/>
+    <path d="M21 3v5h-5"/>
+    <path d="M21 12a9 9 0 0 1-15.5 6.4L3 16"/>
+    <path d="M3 21v-5h5"/>
+  </svg>
+</button>
+
 <script data-cfasync="false">
 // Hide mobile Safari URL bar on load by nudging the scroll position.
 window.addEventListener('load', function () {
   setTimeout(function () { window.scrollTo(0, 1); }, 0);
+});
+
+// Hard refresh: ask GAS to flush its caches, drop SW + browser caches, reload.
+document.addEventListener('DOMContentLoaded', function () {
+  var btn = document.getElementById('refresh-btn');
+  if (!btn) return;
+  btn.addEventListener('click', async function () {
+    btn.classList.add('spinning');
+    try {
+      var key = localStorage.getItem('DASHBOARD_KEY');
+      if (key) {
+        var url = 'https://script.google.com/macros/s/AKfycbxJoTtqTisPq8ZjJvSBzqAkQ8UIVc5XS9JdbHggmV4vGQ45paDCXYpNNgQwEr7VPaPxGw/exec'
+                + '?key=' + encodeURIComponent(key) + '&refresh=1';
+        try { await fetch(url, { redirect: 'follow' }); } catch (e) { console.warn('[refresh] gas flush failed', e); }
+      }
+      if (navigator.serviceWorker) {
+        var regs = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(regs.map(function (r) { return r.unregister(); }));
+      }
+      if (window.caches) {
+        var names = await caches.keys();
+        await Promise.all(names.map(function (n) { return caches.delete(n); }));
+      }
+      try { localStorage.removeItem('DASHBOARD_DATA'); } catch (e) {}
+    } finally {
+      location.reload();
+    }
+  });
 });
 </script>
 
@@ -1678,6 +1759,7 @@ function App() {
   const [hasKey] = useState(() => !!localStorage.getItem("DASHBOARD_KEY"));
   const [authFailed, setAuthFailed] = useState(false);
   const [data, setData] = useState(window.DATA || {});
+  const [netError, setNetError] = useState(null); // { msg } | null
 
   // tick clock
   useEffect(() => {
@@ -1694,23 +1776,35 @@ function App() {
     const fetchData = async () => {
       try {
         const res = await fetch(url, { redirect: "follow" });
-        if (!res.ok) { console.error("[fetch]", res.status); return; }
+        if (!res.ok) {
+          console.error("[fetch]", res.status);
+          setNetError({ msg: `HTTP ${res.status}` });
+          return;
+        }
         const json = await res.json();
         if (isEmptyPayload(json)) {
           setAuthFailed(true);
           return;
         }
         setAuthFailed(false);
+        setNetError(null);
         setData(json);
         try { localStorage.setItem("DASHBOARD_DATA", JSON.stringify(json)); } catch (e) {}
-      } catch (e) { console.error("[fetch]", e); }
+      } catch (e) {
+        console.error("[fetch]", e);
+        setNetError({ msg: String(e?.message || e || "network error") });
+      }
     };
     fetchData();
     const id = setInterval(fetchData, POLL_INTERVAL_MS);
 
-    // SW pings clients when its background revalidate finishes — refetch to
-    // pick up the freshly-cached response without waiting for the next poll.
-    const onSwMsg = (e) => { if (e.data?.type === "data-updated") fetchData(); };
+    // SW tells us when it served a stale (cached) response because the
+    // network failed — show a chip so the user knows the data is from cache.
+    const onSwMsg = (e) => {
+      if (e.data?.type === "data-stale") {
+        setNetError({ msg: "資料來自快取（網路問題）" });
+      }
+    };
     navigator.serviceWorker?.addEventListener("message", onSwMsg);
 
     return () => {
@@ -1744,6 +1838,11 @@ function App() {
     <>
       <Header now={now} />
       <div className="hairline"></div>
+      {netError && (
+        <div className="net-chip" title={netError.msg}>
+          資料異常 · {netError.msg.length > 30 ? netError.msg.slice(0, 30) + "…" : netError.msg}
+        </div>
+      )}
 
       <div className="content">
         {TABS.map((T, i) => (
