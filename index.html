@@ -1935,17 +1935,16 @@ function CalendarPanel({ data }) {
                 <div className="cal-cd-num cal-cd-tmr">明日</div>
                 <div className="cal-cd-unit">tomorrow</div>
               </>
-            ) : (
-              (() => {
-                const m = Math.max(0, next.minutesUntil ?? 0);
-                const useHours = m > 60;
-                return (
-                  <>
-                    <div className="cal-cd-num">{useHours ? Math.round(m / 60) : m}</div>
-                    <div className="cal-cd-unit">{useHours ? '小　時　後' : '分　鐘　後'}</div>
-                  </>
-                );
-              })()}
+            ) : (() => {
+              const m = Math.max(0, next.minutesUntil ?? 0);
+              const useHours = m > 60;
+              return (
+                <>
+                  <div className="cal-cd-num">{useHours ? Math.round(m / 60) : m}</div>
+                  <div className="cal-cd-unit">{useHours ? '小　時　後' : '分　鐘　後'}</div>
+                </>
+              );
+            })()}
           </div>
         </div>
       ) : allDayEvents.length === 0 ? (
