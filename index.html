@@ -62,8 +62,8 @@
 
   html, body {
     margin: 0; padding: 0;
-    width: 100%; height: 100%;
-    background: var(--device-bg-outer);
+    width: 100%; height: 100dvh; min-height: 100%;
+    background: var(--bg);
     overflow: hidden;
     font-family: 'Noto Serif TC', 'Source Serif 4', Georgia, serif;
     -webkit-font-smoothing: antialiased;
@@ -122,10 +122,10 @@
   .header {
     position: absolute;
     top: 0; left: 0; right: 0;
-    height: 88px;
+    height: calc(88px + env(safe-area-inset-top));
     display: flex;
     align-items: stretch;
-    padding: 14px 24px 0 28px;
+    padding: calc(14px + env(safe-area-inset-top)) calc(24px + env(safe-area-inset-right)) 0 calc(28px + env(safe-area-inset-left));
     z-index: 2;
   }
 
@@ -311,7 +311,9 @@
   /* === Hairline divider === */
   .hairline {
     position: absolute;
-    top: 88px; left: 28px; right: 28px;
+    top: calc(88px + env(safe-area-inset-top));
+    left: calc(28px + env(safe-area-inset-left));
+    right: calc(28px + env(safe-area-inset-right));
     height: 1px;
     background: var(--hairline);
     z-index: 2;
@@ -328,8 +330,10 @@
   /* === Tab content area === */
   .content {
     position: absolute;
-    top: 96px; left: 28px; right: 28px;
-    bottom: 38px;
+    top: calc(96px + env(safe-area-inset-top));
+    left: calc(28px + env(safe-area-inset-left));
+    right: calc(28px + env(safe-area-inset-right));
+    bottom: calc(38px + env(safe-area-inset-bottom));
     z-index: 2;
     overflow: hidden;
   }
@@ -1047,7 +1051,9 @@
   /* === Footer: tab indicators + progress === */
   .footer {
     position: absolute;
-    bottom: 0; left: 28px; right: 28px;
+    bottom: env(safe-area-inset-bottom);
+    left: calc(28px + env(safe-area-inset-left));
+    right: calc(28px + env(safe-area-inset-right));
     height: 32px;
     z-index: 2;
     display: flex;
@@ -1274,8 +1280,15 @@
    * ============================================================== */
   @media (max-width: 720px) {
     /* — Header — */
-    .header { height: 72px; padding: 10px 14px 0 14px; }
-    .hairline { top: 72px; left: 14px; right: 14px; }
+    .header {
+      height: calc(72px + env(safe-area-inset-top));
+      padding: calc(10px + env(safe-area-inset-top)) calc(14px + env(safe-area-inset-right)) 0 calc(14px + env(safe-area-inset-left));
+    }
+    .hairline {
+      top: calc(72px + env(safe-area-inset-top));
+      left: calc(14px + env(safe-area-inset-left));
+      right: calc(14px + env(safe-area-inset-right));
+    }
     .date-line1 { font-size: 10px; letter-spacing: 0.24em; }
     .date-num { font-size: 28px; }
     .date-weekday { font-size: 14px; }
@@ -1308,15 +1321,22 @@
     .clock-colon.sec { font-size: 18px; height: 32px; line-height: 32px; padding: 0 1px; }
 
     /* — Content — */
-    .content { top: 80px; left: 14px; right: 14px; bottom: 60px; }
+    .content {
+      top: calc(80px + env(safe-area-inset-top));
+      left: calc(14px + env(safe-area-inset-left));
+      right: calc(14px + env(safe-area-inset-right));
+      bottom: calc(60px + env(safe-area-inset-bottom));
+    }
     .panel-head { margin-bottom: 10px; }
     .panel-title { font-size: 14px; letter-spacing: 0.32em; }
     .panel-title-en { font-size: 10px; letter-spacing: 0.18em; }
 
     /* — Footer (tabs wrap) — */
     .footer {
-      left: 14px; right: 14px;
-      bottom: 8px; height: auto;
+      left: calc(14px + env(safe-area-inset-left));
+      right: calc(14px + env(safe-area-inset-right));
+      bottom: calc(8px + env(safe-area-inset-bottom));
+      height: auto;
       flex-wrap: wrap; row-gap: 6px; column-gap: 10px;
     }
     .tabs { gap: 5px 10px; flex-wrap: wrap; flex: 1 1 100%; order: 1; }
