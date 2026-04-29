@@ -1791,7 +1791,7 @@ function CountdownPanel({ now, data }) {
 // =================================================================
 // Hosts treated as search engines / dev origins — referrals from these are
 // noisy compared to genuine inbound links, so we sort them after everything else.
-const SEARCH_HOST_RE = /^(?:https?:\/\/)?(?:www\.)?(?:google\.com|bing\.com|localhost|127\.0\.0\.1|[a-z0-9-]+\.search\.yahoo\.com|duckduckgo\.com)(?:[/:?#]|$)/i;
+const SEARCH_HOST_RE = /^(?:https?:\/\/)?(?:www\.)?(?:google\.com|bing\.com|localhost|127\.0\.0\.1|[a-z0-9-]+\.search\.yahoo\.com|duckduckgo\.com|zhgchg\.li)(?:[/:?#]|$)/i;
 function isSearchHost(url) { return SEARCH_HOST_RE.test(url || ""); }
 function hostOf(url) {
   if (!url) return "—";
