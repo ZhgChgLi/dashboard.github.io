@@ -1,11 +1,5 @@
 // Paper Dashboard — Service Worker
 //
-// OneSignal SW logic is layered ON TOP of our cache strategies so push events
-// keep working alongside the dashboard's offline behaviour. This must be the
-// first import or push events won't reach the page reliably.
-try { importScripts("https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js"); }
-catch (e) { /* OneSignal not configured / offline first-load → ignore */ }
-
 // Strategies:
 //   1. Static + CDN assets   → cache-first, network fallback
 //   2. Navigation (HTML)     → network-first so updates show without manual reload
@@ -16,7 +10,7 @@ catch (e) { /* OneSignal not configured / offline first-load → ignore */ }
 //
 // Bump CACHE_VERSION when you change static assets to force clients to refresh.
 
-const CACHE_VERSION = "v4";
+const CACHE_VERSION = "v5";
 const STATIC_CACHE = "dashboard-static-" + CACHE_VERSION;
 const PRECACHE_URLS = [
   "./",

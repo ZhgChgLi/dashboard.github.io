@@ -8,9 +8,6 @@
 <meta name="theme-color" content="#f1ebdc">
 <link rel="manifest" href="manifest.json">
 <title>ZhgChgLi</title>
-
-<!-- OneSignal Web SDK — push notifications. App ID is fetched from window.PUSH_CONFIG. -->
-<script data-cfasync="false" src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;500;700;900&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;0,8..60,700;1,8..60,400&display=swap" rel="stylesheet">
@@ -1083,30 +1080,6 @@
   .se-form button:hover { background: var(--stamp-deep); }
   .se-form button:active { transform: translateY(1px); }
 
-  /* Floating notification toggle — sits left of the refresh button */
-  #notif-btn {
-    position: fixed;
-    bottom: 16px; right: 60px;
-    width: 36px; height: 36px;
-    border: 1px solid rgba(255,255,255,0.2);
-    background: rgba(20,17,13,0.55);
-    color: #f1ebdc;
-    border-radius: 50%;
-    padding: 0;
-    cursor: pointer;
-    z-index: 100;
-    display: flex; align-items: center; justify-content: center;
-    transition: opacity 0.3s, background 0.2s;
-    opacity: 0.4;
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
-    -webkit-tap-highlight-color: transparent;
-  }
-  #notif-btn:hover, #notif-btn:focus { opacity: 1; background: rgba(20,17,13,0.85); outline: none; }
-  #notif-btn svg { width: 16px; height: 16px; }
-  #notif-btn.on { background: rgba(45,90,61,0.85); opacity: 1; }
-  #notif-btn.off { opacity: 0.4; }
-
   /* Floating refresh button — semi-transparent, bottom-right of viewport */
   #refresh-btn {
     position: fixed;
@@ -1195,47 +1168,6 @@
     window.DATA = JSON.parse(localStorage.getItem("DASHBOARD_DATA") || "{}");
   } catch (e) { window.DATA = {}; }
 
-  // === OneSignal — Web Push (only meaningful on iOS PWA / installed app). ===
-  // Set the App ID once via DevTools console:
-  //   localStorage.setItem('ONESIGNAL_APP_ID', '<your-app-id>')
-  // Then reload — a 🔔 toggle appears bottom-right; tap it to opt in.
-  window.OneSignalDeferred = window.OneSignalDeferred || [];
-  OneSignalDeferred.push(async function (OneSignal) {
-    var appId = localStorage.getItem("ONESIGNAL_APP_ID");
-    if (!appId) return; // not configured yet — silent no-op
-    try {
-      await OneSignal.init({
-        appId: appId,
-        serviceWorkerPath: "sw.js",
-        serviceWorkerParam: { scope: "./" },
-        notifyButton: { enable: false }
-      });
-      var btn = document.getElementById("notif-btn");
-      if (!btn) return;
-      btn.hidden = false;
-
-      var refresh = function () {
-        var subscribed = OneSignal.User?.PushSubscription?.optedIn === true;
-        btn.classList.toggle("on", subscribed);
-        btn.classList.toggle("off", !subscribed);
-        btn.setAttribute("title", subscribed ? "推播已開啟（再按一次關閉）" : "點擊開啟推播通知");
-      };
-      refresh();
-      OneSignal.User.PushSubscription.addEventListener("change", refresh);
-
-      btn.addEventListener("click", async function () {
-        try {
-          if (OneSignal.User.PushSubscription.optedIn) {
-            await OneSignal.User.PushSubscription.optOut();
-          } else {
-            await OneSignal.Notifications.requestPermission();
-            await OneSignal.User.PushSubscription.optIn();
-          }
-        } catch (e) { console.warn("[onesignal] toggle", e); }
-      });
-    } catch (e) { console.warn("[onesignal] init failed", e); }
-  });
-
   // === Register Service Worker, auto-reload on update ===
   if ("serviceWorker" in navigator) {
     var swReloadGuard = false;
@@ -1259,13 +1191,6 @@
     });
   }
 </script>
-
-<button id="notif-btn" type="button" aria-label="Toggle push notifications" hidden>
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
-    <path d="M10 21a2 2 0 0 0 4 0"/>
-  </svg>
-</button>
 
 <button id="refresh-btn" type="button" aria-label="Hard refresh">
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
