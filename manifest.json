@@ -1,0 +1,12 @@
+{
+  "name": "Paper Dashboard",
+  "short_name": "Dashboard",
+  "description": "紙感儀表 — Paper-aesthetic React dashboard fed by Google Apps Script.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#14110d",
+  "theme_color": "#f1ebdc",
+  "lang": "zh-Hant"
+}

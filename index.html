@@ -1,0 +1,1590 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>紙感儀表 · Paper Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;500;700;900&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;0,8..60,700;1,8..60,400&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.production.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.24.0/babel.min.js"></script>
+
+<style>
+  :root {
+    --bg: #f1ebdc;
+    --bg-deep: #e8e0cc;
+    --ink: #2a2520;
+    --ink-soft: #6b6358;
+    --ink-faint: #9a9080;
+    --hairline: #cdc3ae;
+    --stamp: #a0382e;
+    --stamp-deep: #7a2820;
+    --up: #b94a3a;
+    --down: #2d5a3d;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0; padding: 0;
+    width: 100%; height: 100%;
+    background: #14110d;
+    overflow: hidden;
+    font-family: 'Noto Serif TC', 'Source Serif 4', Georgia, serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  #wrap {
+    position: fixed; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  #stage {
+    width: 736px; height: 414px;
+    transform-origin: center center;
+    position: relative;
+  }
+
+  #device {
+    width: 736px; height: 414px;
+    background: var(--bg);
+    background-image:
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.16  0 0 0 0 0.14  0 0 0 0 0.12  0 0 0 0.08 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"),
+      radial-gradient(ellipse at 30% 20%, rgba(255,250,235,0.5), transparent 60%),
+      radial-gradient(ellipse at 80% 90%, rgba(160,56,46,0.04), transparent 60%);
+    position: relative;
+    overflow: hidden;
+    box-shadow:
+      0 30px 80px rgba(0,0,0,0.5),
+      0 8px 24px rgba(0,0,0,0.3),
+      inset 0 0 0 1px rgba(0,0,0,0.05);
+    color: var(--ink);
+  }
+
+  /* deckle edge - subtle paper border imperfection */
+  #device::before {
+    content: '';
+    position: absolute; inset: 0;
+    pointer-events: none;
+    box-shadow: inset 0 0 60px rgba(120, 90, 50, 0.08);
+    z-index: 1;
+  }
+
+  /* === Header === */
+  .header {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 88px;
+    display: flex;
+    align-items: stretch;
+    padding: 14px 24px 0 28px;
+    z-index: 2;
+  }
+
+  .date-block {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
+  }
+  .date-line1 {
+    font-size: 11px;
+    letter-spacing: 0.32em;
+    color: var(--ink-soft);
+    text-transform: uppercase;
+    font-weight: 500;
+    font-family: 'Source Serif 4', serif;
+    font-style: italic;
+  }
+  .date-line2 {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    font-family: 'Noto Serif TC', serif;
+  }
+  .date-num {
+    font-size: 38px;
+    font-weight: 700;
+    color: var(--ink);
+    letter-spacing: -0.01em;
+    line-height: 1;
+    font-feature-settings: 'lnum';
+  }
+  .date-num .slash {
+    color: var(--ink-faint);
+    font-weight: 400;
+    margin: 0 2px;
+  }
+  .date-weekday {
+    font-size: 18px;
+    color: var(--ink);
+    letter-spacing: 0.15em;
+    font-weight: 500;
+  }
+  .date-line3 {
+    font-size: 10px;
+    color: var(--ink-faint);
+    letter-spacing: 0.2em;
+    font-family: 'Source Serif 4', serif;
+    font-style: italic;
+    margin-top: 2px;
+  }
+
+  /* === Flip Clock === */
+  .clock {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding-top: 4px;
+  }
+  .flip-group {
+    display: flex;
+    gap: 3px;
+  }
+  .flip-card {
+    position: relative;
+    width: 44px;
+    height: 60px;
+    perspective: 360px;
+  }
+  .flip-half {
+    position: absolute;
+    left: 0; right: 0;
+    height: 30px;
+    background: linear-gradient(180deg, #2f2920 0%, #221d18 100%);
+    color: #f5efde;
+    overflow: hidden;
+    font-family: 'Source Serif 4', 'Noto Serif TC', serif;
+    font-weight: 700;
+    font-size: 56px;
+    line-height: 60px;
+    text-align: center;
+    font-feature-settings: 'lnum', 'tnum';
+  }
+  .flip-half.top {
+    top: 0;
+    border-radius: 4px 4px 0 0;
+    box-shadow: inset 0 -1px 0 #000, 0 1px 0 rgba(0,0,0,0.3);
+  }
+  .flip-half.top > span {
+    display: block;
+    line-height: 60px;
+    transform: translateY(0);
+  }
+  .flip-half.bottom {
+    bottom: 0;
+    border-radius: 0 0 4px 4px;
+    background: linear-gradient(180deg, #1d1814 0%, #2a2420 100%);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+  }
+  .flip-half.bottom > span {
+    display: block;
+    line-height: 60px;
+    transform: translateY(-30px);
+  }
+  .flip-flap {
+    position: absolute;
+    left: 0; right: 0;
+    height: 30px;
+    overflow: hidden;
+    backface-visibility: hidden;
+    color: #f5efde;
+    font-family: 'Source Serif 4', 'Noto Serif TC', serif;
+    font-weight: 700;
+    font-size: 56px;
+    text-align: center;
+    font-feature-settings: 'lnum', 'tnum';
+    z-index: 2;
+  }
+  .flip-flap.flap-top {
+    top: 0;
+    background: linear-gradient(180deg, #2f2920 0%, #221d18 100%);
+    border-radius: 4px 4px 0 0;
+    transform-origin: bottom;
+    animation: flap-down 0.32s cubic-bezier(0.4, 0, 0.7, 0.2) forwards;
+    box-shadow: inset 0 -1px 0 #000;
+  }
+  .flip-flap.flap-top > span { display: block; line-height: 60px; }
+  .flip-flap.flap-bottom {
+    bottom: 0;
+    background: linear-gradient(180deg, #1d1814 0%, #2a2420 100%);
+    border-radius: 0 0 4px 4px;
+    transform-origin: top;
+    transform: rotateX(90deg);
+    animation: flap-up 0.32s cubic-bezier(0.3, 0.85, 0.6, 1) 0.32s forwards;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+  }
+  .flip-flap.flap-bottom > span { display: block; line-height: 60px; transform: translateY(-30px); }
+
+  @keyframes flap-down {
+    0%   { transform: rotateX(0); }
+    100% { transform: rotateX(-90deg); }
+  }
+  @keyframes flap-up {
+    0%   { transform: rotateX(90deg); }
+    100% { transform: rotateX(0); }
+  }
+
+  .clock-colon {
+    color: var(--ink);
+    font-family: 'Source Serif 4', serif;
+    font-size: 38px;
+    font-weight: 600;
+    padding: 0 4px;
+    line-height: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.85;
+  }
+  .clock-colon.blink { animation: blink 2s ease-in-out infinite; }
+  @keyframes blink {
+    0%, 50% { opacity: 0.85; }
+    25% { opacity: 0.3; }
+  }
+
+  /* === Hairline divider === */
+  .hairline {
+    position: absolute;
+    top: 88px; left: 28px; right: 28px;
+    height: 1px;
+    background: var(--hairline);
+    z-index: 2;
+  }
+  .hairline::before {
+    content: '';
+    position: absolute;
+    top: 3px; left: 0; right: 0;
+    height: 1px;
+    background: var(--hairline);
+    opacity: 0.5;
+  }
+
+  /* === Tab content area === */
+  .content {
+    position: absolute;
+    top: 96px; left: 28px; right: 28px;
+    bottom: 38px;
+    z-index: 2;
+    overflow: hidden;
+  }
+
+  .tab-panel {
+    position: absolute; inset: 0;
+    opacity: 0;
+    transform: translateY(8px);
+    transition: opacity 0.45s ease, transform 0.45s ease;
+    pointer-events: none;
+  }
+  .tab-panel.active {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+
+  .panel-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+  .panel-title {
+    font-family: 'Noto Serif TC', serif;
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: 0.45em;
+    color: var(--ink);
+  }
+  .panel-title-en {
+    font-family: 'Source Serif 4', serif;
+    font-style: italic;
+    font-size: 11px;
+    letter-spacing: 0.25em;
+    color: var(--ink-faint);
+    text-transform: uppercase;
+  }
+
+  /* === Stocks === */
+  .stocks-summary {
+    display: flex;
+    align-items: baseline;
+    gap: 24px;
+    margin-bottom: 12px;
+  }
+  .summary-block { display: flex; flex-direction: column; gap: 2px; }
+  .summary-label {
+    font-size: 9px;
+    letter-spacing: 0.3em;
+    color: var(--ink-faint);
+    font-style: italic;
+    font-family: 'Source Serif 4', serif;
+    text-transform: uppercase;
+  }
+  .summary-value {
+    font-family: 'Source Serif 4', serif;
+    font-size: 26px;
+    font-weight: 600;
+    color: var(--ink);
+    line-height: 1.1;
+    font-feature-settings: 'lnum', 'tnum';
+  }
+  .summary-value.up { color: var(--up); }
+  .summary-value.down { color: var(--down); }
+
+  .stocks-table {
+    width: 100%;
+    font-family: 'Noto Serif TC', serif;
+  }
+  .stocks-row {
+    display: grid;
+    grid-template-columns: 56px 1fr 80px 80px 90px;
+    align-items: center;
+    padding: 6px 0;
+    border-bottom: 1px dashed var(--hairline);
+    font-size: 14px;
+  }
+  .stocks-row:last-child { border-bottom: none; }
+  .stocks-row.head {
+    font-size: 9px;
+    color: var(--ink-faint);
+    letter-spacing: 0.25em;
+    font-family: 'Source Serif 4', serif;
+    font-style: italic;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--hairline);
+    padding: 4px 0;
+  }
+  .stk-code {
+    font-family: 'Source Serif 4', serif;
+    font-weight: 600;
+    color: var(--ink-soft);
+    font-feature-settings: 'lnum';
+  }
+  .stk-name { color: var(--ink); font-weight: 500; }
+  .stk-num {
+    font-family: 'Source Serif 4', serif;
+    font-feature-settings: 'lnum', 'tnum';
+    text-align: right;
+    color: var(--ink);
+  }
+  .stk-num.up { color: var(--up); font-weight: 600; }
+  .stk-num.down { color: var(--down); font-weight: 600; }
+
+  /* === GA === */
+  .ga-split {
+    display: grid;
+    grid-template-columns: 1.45fr 1fr;
+    gap: 0;
+    height: 100%;
+  }
+  .ga-section { display: flex; flex-direction: column; min-width: 0; }
+  .ga-section.cum { padding-left: 22px; border-left: 1px solid var(--hairline); }
+  .ga-section.live { padding-right: 22px; }
+  .ga-section-head {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .ga-section-zh {
+    font-family: 'Noto Serif TC', serif;
+    font-size: 11px;
+    letter-spacing: 0.4em;
+    color: var(--ink);
+    font-weight: 500;
+  }
+  .ga-section-en {
+    font-family: 'Source Serif 4', serif;
+    font-style: italic;
+    font-size: 9px;
+    letter-spacing: 0.25em;
+    color: var(--ink-faint);
+    text-transform: uppercase;
+  }
+
+  .ga-live-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 14px;
+  }
+  .ga-stat-pair { display: flex; flex-direction: column; gap: 1px; }
+  .ga-stat-en {
+    font-size: 9px;
+    letter-spacing: 0.22em;
+    color: var(--ink-faint);
+    font-style: italic;
+    font-family: 'Source Serif 4', serif;
+    text-transform: uppercase;
+  }
+  .ga-stat-zh {
+    font-size: 10px;
+    color: var(--ink-soft);
+    letter-spacing: 0.18em;
+    font-family: 'Noto Serif TC', serif;
+  }
+  .ga-stat-num {
+    font-family: 'Source Serif 4', serif;
+    font-weight: 700;
+    font-size: 38px;
+    color: var(--ink);
+    line-height: 1;
+    font-feature-settings: 'lnum', 'tnum';
+    margin-top: 4px;
+    letter-spacing: -0.01em;
+  }
+  .ga-pulse-dot {
+    display: inline-block;
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--stamp);
+    margin-right: 8px;
+    animation: pulse 1.4s ease-in-out infinite;
+    vertical-align: middle;
+    transform: translateY(-3px);
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: translateY(-3px) scale(1); }
+    50% { opacity: 0.4; transform: translateY(-3px) scale(0.85); }
+  }
+
+  .ga-paths-head {
+    font-size: 9px;
+    letter-spacing: 0.28em;
+    color: var(--ink-faint);
+    font-style: italic;
+    font-family: 'Source Serif 4', serif;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--hairline);
+    padding-bottom: 4px;
+    margin-bottom: 2px;
+    display: flex;
+    justify-content: space-between;
+  }
+  .ga-path-row {
+    display: grid;
+    grid-template-columns: 1fr 48px;
+    align-items: baseline;
+    padding: 3px 0;
+    font-size: 12px;
+    border-bottom: 1px dashed var(--hairline);
+  }
+  .ga-path-row:last-child { border-bottom: none; }
+  .ga-path-name {
+    font-family: 'Source Serif 4', serif;
+    color: var(--ink);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .ga-path-views {
+    font-family: 'Source Serif 4', serif;
+    font-feature-settings: 'lnum', 'tnum';
+    text-align: right;
+    color: var(--ink);
+    font-weight: 600;
+  }
+
+  .ga-cum-list { display: flex; flex-direction: column; }
+  .ga-cum-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding: 7px 0;
+    border-bottom: 1px dashed var(--hairline);
+  }
+  .ga-cum-row:last-child { border-bottom: none; }
+  .ga-cum-left { display: flex; flex-direction: column; gap: 1px; }
+  .ga-cum-zh {
+    font-family: 'Noto Serif TC', serif;
+    font-size: 12px;
+    color: var(--ink);
+    letter-spacing: 0.12em;
+  }
+  .ga-cum-en {
+    font-family: 'Source Serif 4', serif;
+    font-style: italic;
+    font-size: 9px;
+    color: var(--ink-faint);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+  .ga-cum-num {
+    font-family: 'Source Serif 4', serif;
+    font-weight: 700;
+    font-size: 20px;
+    color: var(--ink);
+    font-feature-settings: 'lnum', 'tnum';
+    letter-spacing: -0.01em;
+  }
+  .ga-cum-num.money { color: var(--stamp); }
+  .ga-cum-num .unit {
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--ink-soft);
+    margin-left: 1px;
+  }
+  .ga-cum-num .currency {
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--ink-soft);
+    margin-right: 2px;
+    font-style: italic;
+  }
+
+  /* === Weather === */
+  .weather-split {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    height: 100%;
+  }
+  .weather-city {
+    display: flex;
+    flex-direction: column;
+    padding-right: 22px;
+  }
+  .weather-city + .weather-city {
+    padding-left: 22px;
+    padding-right: 0;
+    border-left: 1px solid var(--hairline);
+  }
+  .weather-loc-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 2px;
+  }
+  .weather-loc {
+    font-family: 'Noto Serif TC', serif;
+    font-size: 16px;
+    letter-spacing: 0.4em;
+    color: var(--ink);
+    font-weight: 500;
+  }
+  .weather-loc-en {
+    font-family: 'Source Serif 4', serif;
+    font-style: italic;
+    font-size: 9px;
+    letter-spacing: 0.22em;
+    color: var(--ink-faint);
+    text-transform: uppercase;
+  }
+  .weather-cond {
+    font-family: 'Source Serif 4', serif;
+    font-style: italic;
+    font-size: 11px;
+    color: var(--ink-soft);
+    letter-spacing: 0.12em;
+  }
+  .weather-temp-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 14px;
+    margin-top: 4px;
+  }
+  .weather-temp {
+    font-family: 'Source Serif 4', serif;
+    font-weight: 700;
+    font-size: 68px;
+    line-height: 0.95;
+    color: var(--ink);
+    font-feature-settings: 'lnum', 'tnum';
+    letter-spacing: -0.04em;
+    position: relative;
+    display: inline-block;
+  }
+  .weather-temp .deg {
+    position: absolute;
+    top: 4px;
+    font-size: 26px;
+    font-weight: 400;
+    color: var(--ink-soft);
+  }
+  .weather-hilo {
+    font-family: 'Source Serif 4', serif;
+    font-size: 12px;
+    color: var(--ink-soft);
+    letter-spacing: 0.08em;
+    font-feature-settings: 'lnum', 'tnum';
+    padding-bottom: 4px;
+    line-height: 1.5;
+  }
+  .weather-hilo .sep { color: var(--ink-faint); margin: 0 4px; }
+  .weather-big-icon {
+    color: var(--ink);
+    margin-left: auto;
+    padding-bottom: 4px;
+  }
+
+  .weather-hourly {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 2px;
+    margin-top: 10px;
+    border-top: 1px dashed var(--hairline);
+    padding-top: 8px;
+  }
+  .hour-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+  .hour-time {
+    font-family: 'Source Serif 4', serif;
+    font-size: 10px;
+    color: var(--ink-faint);
+    letter-spacing: 0.08em;
+    font-feature-settings: 'lnum';
+  }
+  .hour-icon {
+    width: 18px; height: 18px;
+    color: var(--ink);
+  }
+  .hour-temp {
+    font-family: 'Source Serif 4', serif;
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--ink);
+    font-feature-settings: 'lnum', 'tnum';
+  }
+  .hour-rain {
+    font-family: 'Source Serif 4', serif;
+    font-size: 9px;
+    color: var(--stamp);
+    font-feature-settings: 'lnum';
+    font-style: italic;
+  }
+
+  /* === Calendar === */
+  .cal-now {
+    background: var(--bg-deep);
+    background-image:
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100'><rect width='100%' height='100%' fill='%23e8e0cc'/><line x1='0' y1='0' x2='100' y2='100' stroke='%23d4cdbf' stroke-width='0.3' opacity='0.4'/></svg>");
+    border: 1px solid var(--hairline);
+    padding: 14px 20px;
+    position: relative;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .cal-now::before {
+    content: '即將';
+    position: absolute;
+    top: -8px; left: 16px;
+    background: var(--bg);
+    padding: 0 8px;
+    font-family: 'Noto Serif TC', serif;
+    font-size: 10px;
+    letter-spacing: 0.4em;
+    color: var(--stamp);
+    font-weight: 500;
+  }
+  .cal-event-title {
+    font-family: 'Noto Serif TC', serif;
+    font-size: 18px;
+    font-weight: 500;
+    color: var(--ink);
+    margin-bottom: 4px;
+    letter-spacing: 0.05em;
+  }
+  .cal-event-meta {
+    font-family: 'Source Serif 4', serif;
+    font-style: italic;
+    font-size: 11px;
+    color: var(--ink-soft);
+    letter-spacing: 0.15em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 460px;
+  }
+  .cal-countdown {
+    text-align: right;
+    font-family: 'Source Serif 4', serif;
+  }
+  .cal-cd-num {
+    font-size: 48px;
+    font-weight: 700;
+    color: var(--stamp);
+    line-height: 1;
+    font-feature-settings: 'lnum', 'tnum';
+  }
+  .cal-cd-num.cal-cd-tmr {
+    font-family: 'Noto Serif TC', serif;
+    font-size: 36px;
+    letter-spacing: 0.08em;
+  }
+  .cal-cd-unit {
+    font-family: 'Noto Serif TC', serif;
+    font-size: 11px;
+    color: var(--ink-soft);
+    letter-spacing: 0.4em;
+    font-style: normal;
+    margin-top: 2px;
+  }
+
+  .cal-list { display: flex; flex-direction: column; gap: 6px; }
+  .cal-row {
+    display: grid;
+    grid-template-columns: 90px minmax(0, 1fr) minmax(0, 1.1fr);
+    align-items: center;
+    gap: 12px;
+    padding: 4px 0;
+    border-bottom: 1px dashed var(--hairline);
+    font-size: 13px;
+  }
+  .cal-row:last-child { border-bottom: none; }
+  .cal-row-time {
+    font-family: 'Source Serif 4', serif;
+    font-feature-settings: 'lnum', 'tnum';
+    color: var(--ink-soft);
+    font-style: italic;
+  }
+  .cal-row-name {
+    font-family: 'Noto Serif TC', serif;
+    color: var(--ink);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+  }
+  .cal-row-loc {
+    font-family: 'Source Serif 4', serif;
+    font-style: italic;
+    font-size: 10px;
+    color: var(--ink-faint);
+    letter-spacing: 0.05em;
+    text-align: right;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+  }
+
+  /* === Countdown === */
+  .cd-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px 28px;
+  }
+  .cd-item {
+    display: grid;
+    grid-template-columns: 64px 1fr;
+    align-items: center;
+    gap: 14px;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--hairline);
+  }
+  .cd-stamp {
+    width: 60px; height: 60px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid var(--stamp);
+    color: var(--stamp);
+    font-family: 'Noto Serif TC', serif;
+    text-align: center;
+    transform: rotate(-2deg);
+    background: rgba(160, 56, 46, 0.04);
+    position: relative;
+  }
+  .cd-stamp.past { border-color: var(--ink-soft); color: var(--ink-soft); background: rgba(0,0,0,0.03); }
+  .cd-stamp::before {
+    content: '';
+    position: absolute;
+    inset: -3px;
+    border: 1px solid currentColor;
+    opacity: 0.3;
+  }
+  .cd-num {
+    font-family: 'Source Serif 4', serif;
+    font-weight: 700;
+    font-size: 22px;
+    line-height: 1;
+    font-feature-settings: 'lnum', 'tnum';
+  }
+  .cd-day-label {
+    font-size: 9px;
+    letter-spacing: 0.25em;
+    margin-top: 2px;
+    font-style: italic;
+    font-family: 'Source Serif 4', serif;
+  }
+  .cd-info { display: flex; flex-direction: column; gap: 2px; }
+  .cd-name {
+    font-family: 'Noto Serif TC', serif;
+    font-size: 14px;
+    color: var(--ink);
+    font-weight: 500;
+    letter-spacing: 0.06em;
+  }
+  .cd-date {
+    font-family: 'Source Serif 4', serif;
+    font-style: italic;
+    font-size: 10px;
+    color: var(--ink-faint);
+    letter-spacing: 0.15em;
+    font-feature-settings: 'lnum';
+  }
+
+  /* === Footer: tab indicators + progress === */
+  .footer {
+    position: absolute;
+    bottom: 0; left: 28px; right: 28px;
+    height: 32px;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .tabs {
+    display: flex;
+    gap: 22px;
+    flex: 1;
+  }
+  .tab-label {
+    font-family: 'Noto Serif TC', serif;
+    font-size: 10px;
+    letter-spacing: 0.32em;
+    color: var(--ink-faint);
+    cursor: pointer;
+    transition: color 0.3s;
+    position: relative;
+    padding: 4px 0;
+  }
+  .tab-label.active { color: var(--ink); font-weight: 500; }
+  .tab-label.active::before {
+    content: '';
+    position: absolute;
+    bottom: 0; left: -2px;
+    width: 14px; height: 1px;
+    background: var(--stamp);
+  }
+  .progress {
+    width: 96px;
+    height: 1px;
+    background: var(--hairline);
+    position: relative;
+  }
+  .progress-fill {
+    position: absolute;
+    top: -0.5px; left: 0;
+    height: 2px;
+    background: var(--ink);
+    transition: width 0.1s linear;
+  }
+  .progress-num {
+    font-family: 'Source Serif 4', serif;
+    font-style: italic;
+    font-size: 10px;
+    color: var(--ink-faint);
+    font-feature-settings: 'lnum', 'tnum';
+    letter-spacing: 0.1em;
+    min-width: 28px;
+  }
+
+  /* fullscreen toggle button — sits on the dark backdrop, top-right of viewport */
+  #fs-btn {
+    position: fixed;
+    top: 16px; right: 16px;
+    width: 32px; height: 32px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 6px;
+    color: #f1ebdc;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    z-index: 100;
+    transition: background 0.2s, opacity 0.4s;
+    opacity: 0.4;
+    padding: 0;
+  }
+  #fs-btn:hover { background: rgba(255, 255, 255, 0.18); opacity: 1; }
+  #fs-btn svg { width: 16px; height: 16px; }
+  :fullscreen #fs-btn { opacity: 0.2; }
+  :fullscreen #fs-btn:hover { opacity: 1; }
+
+  /* seconds variant — smaller subordinate flip cards */
+  .flip-card.sec {
+    width: 28px;
+    height: 38px;
+    perspective: 240px;
+  }
+  .flip-card.sec .flip-half,
+  .flip-card.sec .flip-flap {
+    height: 19px;
+    font-size: 36px;
+    line-height: 38px;
+  }
+  .flip-card.sec .flip-half > span,
+  .flip-card.sec .flip-flap > span { line-height: 38px; }
+  .flip-card.sec .flip-half.bottom > span { transform: translateY(-19px); }
+  .flip-card.sec .flip-flap.flap-bottom > span { transform: translateY(-19px); }
+  .clock-colon.sec {
+    font-size: 24px;
+    height: 38px;
+    line-height: 38px;
+    padding: 0 2px;
+  }
+</style>
+</head>
+<body>
+
+<script>
+  // === Config ===
+  const GAS_URL = "https://script.google.com/macros/s/AKfycbxJoTtqTisPq8ZjJvSBzqAkQ8UIVc5XS9JdbHggmV4vGQ45paDCXYpNNgQwEr7VPaPxGw/exec";
+
+  // === Key flow: read from URL hash on first visit, persist to localStorage ===
+  (function () {
+    var hashParams = new URLSearchParams(location.hash.replace(/^#/, ""));
+    var hashKey = hashParams.get("key");
+    if (hashKey) {
+      localStorage.setItem("DASHBOARD_KEY", hashKey);
+      history.replaceState(null, "", location.pathname + location.search);
+    }
+  })();
+
+  // === Restore last-known data for instant first paint ===
+  try {
+    window.DATA = JSON.parse(localStorage.getItem("DASHBOARD_DATA") || "{}");
+  } catch (e) { window.DATA = {}; }
+
+  // === Register Service Worker ===
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", function () {
+      navigator.serviceWorker.register("./sw.js").catch(function (err) {
+        console.error("[sw] register failed:", err);
+      });
+    });
+  }
+</script>
+
+<button id="fs-btn" aria-label="Toggle fullscreen" onclick="toggleFullscreen()">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>
+  </svg>
+</button>
+
+<script>
+function toggleFullscreen() {
+  var doc = document;
+  var inFs = doc.fullscreenElement || doc.webkitFullscreenElement;
+  if (!inFs) {
+    var el = doc.documentElement;
+    if (el.requestFullscreen) el.requestFullscreen();
+    else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+  } else {
+    if (doc.exitFullscreen) doc.exitFullscreen();
+    else if (doc.webkitExitFullscreen) doc.webkitExitFullscreen();
+  }
+}
+</script>
+
+<div id="wrap">
+  <div id="stage">
+    <div id="device">
+      <div id="root"></div>
+    </div>
+  </div>
+</div>
+
+<script type="text/babel">
+const { useState, useEffect, useRef, useMemo } = React;
+
+// ---- auto-scale ----
+function fitStage() {
+  const stage = document.getElementById('stage');
+  if (!stage) return;
+  const s = Math.min(window.innerWidth / 736, window.innerHeight / 414);
+  stage.style.transform = `scale(${s})`;
+}
+window.addEventListener('resize', fitStage);
+window.addEventListener('load', fitStage);
+fitStage();
+
+// =================================================================
+// FLIP CLOCK
+// =================================================================
+function FlipDigit({ value, size = 'lg', duration = 640 }) {
+  const [current, setCurrent] = useState(value);
+  const [previous, setPrevious] = useState(value);
+  const [flipping, setFlipping] = useState(false);
+
+  useEffect(() => {
+    if (value !== current) {
+      setPrevious(current);
+      setFlipping(true);
+      const t = setTimeout(() => {
+        setCurrent(value);
+        setFlipping(false);
+      }, duration);
+      return () => clearTimeout(t);
+    }
+  }, [value, current, duration]);
+
+  const next = value;
+  const cls = `flip-card ${size === 'sm' ? 'sec' : ''}`;
+
+  return (
+    <div className={cls}>
+      <div className="flip-half top"><span>{flipping ? next : current}</span></div>
+      <div className="flip-half bottom"><span>{flipping ? previous : current}</span></div>
+      {flipping && (
+        <>
+          <div className="flip-flap flap-top" key={`t-${previous}-${next}`}><span>{previous}</span></div>
+          <div className="flip-flap flap-bottom" key={`b-${previous}-${next}`}><span>{next}</span></div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function FlipClock({ now }) {
+  const h = now.getHours();
+  const m = now.getMinutes();
+  const s = now.getSeconds();
+  const h1 = Math.floor(h / 10), h2 = h % 10;
+  const m1 = Math.floor(m / 10), m2 = m % 10;
+  const s1 = Math.floor(s / 10), s2 = s % 10;
+  return (
+    <div className="clock">
+      <div className="flip-group">
+        <FlipDigit value={h1} />
+        <FlipDigit value={h2} />
+      </div>
+      <div className="clock-colon">:</div>
+      <div className="flip-group">
+        <FlipDigit value={m1} />
+        <FlipDigit value={m2} />
+      </div>
+      <div className="clock-colon">:</div>
+      <div className="flip-group">
+        <FlipDigit value={s1} duration={360} />
+        <FlipDigit value={s2} duration={360} />
+      </div>
+    </div>
+  );
+}
+
+// =================================================================
+// HEADER
+// =================================================================
+const WEEKDAYS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
+const WEEKDAYS_EN = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const MONTHS_EN = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+function Header({ now }) {
+  const y = now.getFullYear();
+  const mo = now.getMonth() + 1;
+  const d = now.getDate();
+  const wd = now.getDay();
+  return (
+    <div className="header">
+      <div className="date-block">
+        <div className="date-line1">A.D. {y} · {MONTHS_EN[mo-1]}</div>
+        <div className="date-line2">
+          <span className="date-num">{mo}<span className="slash">/</span>{d}</span>
+          <span className="date-weekday">{WEEKDAYS_ZH[wd]}</span>
+        </div>
+        <div className="date-line3">{WEEKDAYS_EN[wd]} &nbsp;·&nbsp; week {Math.ceil((((now - new Date(y,0,1)) / 86400000) + new Date(y,0,1).getDay() + 1) / 7)}</div>
+      </div>
+      <FlipClock now={now} />
+    </div>
+  );
+}
+
+// =================================================================
+// TAB 1 — STOCKS
+// =================================================================
+const STOCK_FALLBACK = [
+  { code: '2330', name: '台積電',     qty: 200, price: 1085, chg:  +1.4 },
+  { code: '2317', name: '鴻　海',     qty: 500, price:  238, chg:  -0.8 },
+  { code: '2454', name: '聯發科',     qty: 100, price: 1430, chg:  +2.3 },
+  { code: '2412', name: '中華電',     qty: 800, price:  127, chg:  +0.0 },
+  { code: '0050', name: '元大台灣50', qty: 300, price:  205, chg:  +0.7 },
+];
+
+function StocksPanel({ data }) {
+  const STOCK_DATA = data?.stocks?.holdings?.length ? data.stocks.holdings : STOCK_FALLBACK;
+  const totalValue = STOCK_DATA.reduce((s, x) => s + x.qty * x.price, 0);
+  const totalChg = STOCK_DATA.reduce((s, x) => s + x.qty * x.price * (x.chg / 100), 0);
+  const totalChgPct = (totalChg / (totalValue - totalChg)) * 100;
+  const isUp = totalChg >= 0;
+
+  return (
+    <div className="tab-panel-inner">
+      <div className="panel-head">
+        <span className="panel-title">持　股</span>
+        <span className="panel-title-en">Portfolio · TWSE</span>
+      </div>
+      <div className="stocks-summary">
+        <div className="summary-block">
+          <span className="summary-label">total value · NTD</span>
+          <span className="summary-value">{totalValue.toLocaleString()}</span>
+        </div>
+        <div className="summary-block">
+          <span className="summary-label">today · P&amp;L</span>
+          <span className={`summary-value ${isUp ? 'up' : 'down'}`}>
+            {isUp ? '+' : ''}{Math.round(totalChg).toLocaleString()}
+            <span style={{fontSize:14, marginLeft:8, fontWeight:400}}>
+              ({isUp ? '+' : ''}{totalChgPct.toFixed(2)}%)
+            </span>
+          </span>
+        </div>
+      </div>
+      <div className="stocks-table">
+        <div className="stocks-row head">
+          <span>code</span>
+          <span>name</span>
+          <span style={{textAlign:'right'}}>price</span>
+          <span style={{textAlign:'right'}}>chg %</span>
+          <span style={{textAlign:'right'}}>value</span>
+        </div>
+        {STOCK_DATA.map(s => (
+          <div className="stocks-row" key={s.code}>
+            <span className="stk-code">{s.code}</span>
+            <span className="stk-name">{s.name}</span>
+            <span className="stk-num">{s.price.toLocaleString()}</span>
+            <span className={`stk-num ${s.chg > 0 ? 'up' : s.chg < 0 ? 'down' : ''}`}>
+              {s.chg > 0 ? '+' : ''}{s.chg.toFixed(2)}%
+            </span>
+            <span className="stk-num">{(s.qty * s.price).toLocaleString()}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// =================================================================
+// TAB 2 — GA
+// =================================================================
+const GA_TOP_PATHS_FALLBACK = [
+  { p: '/posts/swift-async-await-guide', v: 142 },
+  { p: '/',                              v:  98 },
+  { p: '/posts/swiftui-tips',            v:  54 },
+  { p: '/posts/medium-publish-tool',     v:  42 },
+  { p: '/about',                         v:  31 },
+];
+
+function GAPanel({ data }) {
+  const GA_LIVE = data?.ga?.live || {};
+  const GA_CUM  = data?.ga?.cum  || {};
+  const GA_TOP_PATHS = GA_LIVE.topPaths?.length ? GA_LIVE.topPaths : GA_TOP_PATHS_FALLBACK;
+  const GA_ACTIVE_USERS = GA_LIVE.activeUsers ?? 47;
+  const GA_PAGE_VIEWS   = GA_LIVE.pageViews   ?? 312;
+  const GA_AD_REVENUE   = GA_CUM.adRevenue    ?? 1284.36;
+  const GA_AD_CLICKS    = GA_CUM.adClicks     ?? 3421;
+  const GA_TOTAL_VIEWS  = GA_CUM.totalViews   ?? 284531;
+  const GA_USERS_30D    = GA_CUM.users30d     ?? 18420;
+  return (
+    <div className="tab-panel-inner">
+      <div className="panel-head">
+        <span className="panel-title">流　量</span>
+        <span className="panel-title-en">Web Analytics · GA4</span>
+      </div>
+      <div className="ga-split">
+        {/* === LEFT · realtime 30 min === */}
+        <div className="ga-section live">
+          <div className="ga-section-head">
+            <span className="ga-section-zh">即　時</span>
+            <span className="ga-section-en">last 30 min</span>
+          </div>
+          <div className="ga-live-stats">
+            <div className="ga-stat-pair">
+              <span className="ga-stat-en">active users</span>
+              <span className="ga-stat-zh">活躍使用者</span>
+              <span className="ga-stat-num"><span className="ga-pulse-dot"></span>{GA_ACTIVE_USERS.toLocaleString()}</span>
+            </div>
+            <div className="ga-stat-pair">
+              <span className="ga-stat-en">page views</span>
+              <span className="ga-stat-zh">觀看次數</span>
+              <span className="ga-stat-num">{GA_PAGE_VIEWS.toLocaleString()}</span>
+            </div>
+          </div>
+          <div className="ga-paths-head">
+            <span>top pages · 網頁路徑</span>
+            <span>views</span>
+          </div>
+          {GA_TOP_PATHS.map((row, i) => (
+            <div className="ga-path-row" key={i}>
+              <span className="ga-path-name">{row.p}</span>
+              <span className="ga-path-views">{row.v}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* === RIGHT · cumulative === */}
+        <div className="ga-section cum">
+          <div className="ga-section-head">
+            <span className="ga-section-zh">累　計</span>
+            <span className="ga-section-en">cumulative</span>
+          </div>
+          <div className="ga-cum-list">
+            <div className="ga-cum-row">
+              <div className="ga-cum-left">
+                <span className="ga-cum-zh">廣告收入</span>
+                <span className="ga-cum-en">ad revenue</span>
+              </div>
+              <span className="ga-cum-num money">
+                <span className="currency">US$</span>
+                {Math.floor(GA_AD_REVENUE).toLocaleString()}
+                <span className="unit">.{(GA_AD_REVENUE.toFixed(2).split('.')[1] || '00')}</span>
+              </span>
+            </div>
+            <div className="ga-cum-row">
+              <div className="ga-cum-left">
+                <span className="ga-cum-zh">廣告點擊</span>
+                <span className="ga-cum-en">ad clicks</span>
+              </div>
+              <span className="ga-cum-num">{GA_AD_CLICKS.toLocaleString()}</span>
+            </div>
+            <div className="ga-cum-row">
+              <div className="ga-cum-left">
+                <span className="ga-cum-zh">瀏覽數</span>
+                <span className="ga-cum-en">total page views</span>
+              </div>
+              <span className="ga-cum-num">{GA_TOTAL_VIEWS.toLocaleString()}</span>
+            </div>
+            <div className="ga-cum-row">
+              <div className="ga-cum-left">
+                <span className="ga-cum-zh">活躍使用者</span>
+                <span className="ga-cum-en">past 30 days</span>
+              </div>
+              <span className="ga-cum-num">{GA_USERS_30D.toLocaleString()}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// =================================================================
+// TAB 3 — WEATHER
+// =================================================================
+function WeatherIcon({ type, size = 22 }) {
+  const stroke = 'currentColor';
+  const props = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke, strokeWidth: 1.4, strokeLinecap: 'round', strokeLinejoin: 'round' };
+  if (type === 'sun')    return <svg {...props}><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>;
+  if (type === 'cloud')  return <svg {...props}><path d="M7 18a4 4 0 010-8 6 6 0 0111.5 1.5A4 4 0 0117 18H7z"/></svg>;
+  if (type === 'rain')   return <svg {...props}><path d="M7 14a4 4 0 010-8 6 6 0 0111.5 1.5A4 4 0 0117 14H7z"/><path d="M9 18l-1 3M13 18l-1 3M17 18l-1 3"/></svg>;
+  if (type === 'partly') return <svg {...props}><circle cx="8" cy="9" r="3"/><path d="M11 16a3 3 0 010-6 5 5 0 019.5 1.5A3 3 0 0119 16h-8z"/></svg>;
+  return null;
+}
+
+const WEATHER_FALLBACK = [
+  {
+    zh: '臺　北', en: 'Taipei',
+    cond: 'Partly Cloudy', condZh: '多雲時晴', icon: 'partly',
+    temp: 22, hi: 25, lo: 19, feel: 21,
+    hourly: [
+      { h: '15', t: 23, type: 'partly', rain: 10 },
+      { h: '16', t: 23, type: 'cloud',  rain: 20 },
+      { h: '17', t: 22, type: 'cloud',  rain: 30 },
+      { h: '18', t: 21, type: 'rain',   rain: 60 },
+    ],
+  },
+  {
+    zh: '新　北', en: 'New Taipei',
+    cond: 'Light Rain', condZh: '局部短暫雨', icon: 'rain',
+    temp: 21, hi: 23, lo: 18, feel: 20,
+    hourly: [
+      { h: '15', t: 22, type: 'rain',  rain: 50 },
+      { h: '16', t: 21, type: 'rain',  rain: 70 },
+      { h: '17', t: 21, type: 'rain',  rain: 75 },
+      { h: '18', t: 20, type: 'cloud', rain: 40 },
+    ],
+  },
+];
+
+function WeatherPanel({ data }) {
+  const WEATHER_CITIES = data?.weather?.cities?.length ? data.weather.cities : WEATHER_FALLBACK;
+  return (
+    <div className="tab-panel-inner">
+      <div className="panel-head">
+        <span className="panel-title">天　氣</span>
+        <span className="panel-title-en">Taipei Metro · 25.04°N</span>
+      </div>
+      <div className="weather-split">
+        {WEATHER_CITIES.map((c, i) => (
+          <div className="weather-city" key={i}>
+            <div className="weather-loc-row">
+              <span className="weather-loc">{c.zh}</span>
+              <span className="weather-loc-en">{c.en}</span>
+            </div>
+            <div className="weather-cond">{c.cond} · {c.condZh}</div>
+            <div className="weather-temp-row">
+              <span className="weather-temp">{c.temp}<span className="deg">°</span></span>
+              <span className="weather-hilo">
+                H {c.hi}° <span className="sep">·</span> L {c.lo}°<br/>
+                體感 {c.feel}°
+              </span>
+              <span className="weather-big-icon"><WeatherIcon type={c.icon} size={36} /></span>
+            </div>
+            <div className="weather-hourly">
+              {c.hourly.map(h => (
+                <div className="hour-col" key={h.h}>
+                  <div className="hour-time">{h.h}:00</div>
+                  <div className="hour-icon"><WeatherIcon type={h.type} size={18} /></div>
+                  <div className="hour-temp">{h.t}°</div>
+                  <div className="hour-rain">{h.rain}%</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// =================================================================
+// TAB 4 — CALENDAR
+// =================================================================
+const CAL_FALLBACK = [
+  { time: '14:00 — 15:00', name: '與設計師對焦 · v2 review', loc: 'Zoom',          minutesUntil: 28 },
+  { time: '16:30 — 17:00', name: '週會 · 工程組',           loc: 'Meet · 線上',    minutesUntil: 178 },
+  { time: '19:30',         name: '晚餐 · 父母來訪',         loc: '永康街',         minutesUntil: 358 },
+  { time: '21:00',         name: '回看週報 · 寫月結',       loc: '書房',           minutesUntil: 448 },
+];
+
+function CalendarPanel({ data }) {
+  const CAL_EVENTS = data?.calendar?.events?.length ? data.calendar.events : CAL_FALLBACK;
+  const todayEvents = CAL_EVENTS.filter(e => !e.day || e.day === 'today');
+  const tomorrowEvents = CAL_EVENTS.filter(e => e.day === 'tomorrow');
+
+  // Featured "即將" — today's next event; if none, tomorrow's first.
+  const next = todayEvents[0] || tomorrowEvents[0];
+  const isTomorrow = !todayEvents.length && !!tomorrowEvents.length;
+  // List below — rest of the same day as the featured event.
+  const rest = isTomorrow ? tomorrowEvents.slice(1) : todayEvents.slice(1);
+
+  const headerCount = todayEvents.length || tomorrowEvents.length;
+  const headerLabel = isTomorrow
+    ? `Tomorrow · ${headerCount} event${headerCount === 1 ? '' : 's'}`
+    : `Today · ${headerCount} event${headerCount === 1 ? '' : 's'}`;
+
+  return (
+    <div className="tab-panel-inner">
+      <div className="panel-head">
+        <span className="panel-title">行　事　曆</span>
+        <span className="panel-title-en">{headerLabel}</span>
+      </div>
+      {next ? (
+        <div className={`cal-now ${isTomorrow ? 'is-tomorrow' : ''}`}>
+          <div>
+            <div className="cal-event-title">{next.name}</div>
+            <div className="cal-event-meta">{next.time} &nbsp;·&nbsp; {next.loc || '—'}</div>
+          </div>
+          <div className="cal-countdown">
+            {isTomorrow ? (
+              <>
+                <div className="cal-cd-num cal-cd-tmr">明日</div>
+                <div className="cal-cd-unit">tomorrow</div>
+              </>
+            ) : (
+              <>
+                <div className="cal-cd-num">{Math.max(0, next.minutesUntil ?? 0)}</div>
+                <div className="cal-cd-unit">分　鐘　後</div>
+              </>
+            )}
+          </div>
+        </div>
+      ) : (
+        <div className="cal-now">
+          <div>
+            <div className="cal-event-title">最近沒有行程</div>
+            <div className="cal-event-meta">enjoy a slow day · ☕</div>
+          </div>
+        </div>
+      )}
+      <div className="cal-list">
+        {rest.map((e, i) => (
+          <div className="cal-row" key={i}>
+            <span className="cal-row-time">{e.time}</span>
+            <span className="cal-row-name">{e.name}</span>
+            <span className="cal-row-loc">{e.loc}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// =================================================================
+// TAB 5 — COUNTDOWN / D-DAY
+// =================================================================
+const CD_FALLBACK = [
+  { name: '出國・京都賞楓',      date: '2026-11-12', target: '2026-11-12' },
+  { name: '結婚紀念日',          date: '2026-06-08', target: '2026-06-08' },
+  { name: '年終 / Year End',     date: '2026-12-31', target: '2026-12-31' },
+  { name: '入職滿三年 · Day',    date: '2023-08-15', target: '2023-08-15', past: true },
+];
+
+function daysBetween(target, today) {
+  const t = new Date(target);
+  const d = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  return Math.round((t - d) / 86400000);
+}
+
+function CountdownPanel({ now, data }) {
+  const CD_EVENTS = data?.countdown?.events?.length
+    ? data.countdown.events.map(e => ({ ...e, date: e.target }))
+    : CD_FALLBACK;
+  return (
+    <div className="tab-panel-inner">
+      <div className="panel-head">
+        <span className="panel-title">倒　數　日</span>
+        <span className="panel-title-en">D-Day · counting</span>
+      </div>
+      <div className="cd-grid">
+        {CD_EVENTS.map((e, i) => {
+          const diff = daysBetween(e.target, now);
+          const isPast = diff < 0;
+          const num = Math.abs(diff);
+          return (
+            <div className="cd-item" key={i}>
+              <div className={`cd-stamp ${isPast ? 'past' : ''}`}>
+                <div className="cd-num">{num}</div>
+                <div className="cd-day-label">{isPast ? 'PAST' : 'D-DAY'}</div>
+              </div>
+              <div className="cd-info">
+                <div className="cd-name">{e.name}</div>
+                <div className="cd-date">{e.date}{isPast ? ` · 已過 ${num} 天` : ` · 還有 ${num} 天`}</div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// =================================================================
+// MAIN APP
+// =================================================================
+const TABS = [
+  { id: 'stocks',  label: '持　股',     en: 'STOCKS',     Comp: StocksPanel },
+  { id: 'ga',      label: '流　量',     en: 'TRAFFIC',    Comp: GAPanel },
+  { id: 'weather', label: '天　氣',     en: 'WEATHER',    Comp: WeatherPanel },
+  { id: 'cal',     label: '行事曆',     en: 'CALENDAR',   Comp: CalendarPanel },
+  { id: 'cd',      label: '倒數日',     en: 'D-DAY',      Comp: CountdownPanel },
+];
+const TAB_DURATION = 15000;
+
+const POLL_INTERVAL_MS = 60_000; // 1 min — cache itself refreshes every 5 min server-side
+
+function App() {
+  const [now, setNow] = useState(new Date());
+  const [activeIdx, setActiveIdx] = useState(0);
+  const [progress, setProgress] = useState(0);
+  const [data, setData] = useState(window.DATA || {});
+
+  // tick clock
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  // fetch data from GAS JSON endpoint; SW does stale-while-revalidate caching
+  useEffect(() => {
+    const key = localStorage.getItem("DASHBOARD_KEY");
+    if (!key) {
+      console.error("[fetch] no DASHBOARD_KEY — append #key=... to URL once");
+      return;
+    }
+    const url = GAS_URL + "?key=" + encodeURIComponent(key);
+
+    const fetchData = async () => {
+      try {
+        const res = await fetch(url, { redirect: "follow" });
+        if (!res.ok) { console.error("[fetch]", res.status); return; }
+        const json = await res.json();
+        if (json && !json.error) {
+          setData(json);
+          try { localStorage.setItem("DASHBOARD_DATA", JSON.stringify(json)); } catch (e) {}
+        }
+      } catch (e) { console.error("[fetch]", e); }
+    };
+    fetchData();
+    const id = setInterval(fetchData, POLL_INTERVAL_MS);
+
+    // SW pings clients when its background revalidate finishes — refetch to
+    // pick up the freshly-cached response without waiting for the next poll.
+    const onSwMsg = (e) => { if (e.data?.type === "data-updated") fetchData(); };
+    navigator.serviceWorker?.addEventListener("message", onSwMsg);
+
+    return () => {
+      clearInterval(id);
+      navigator.serviceWorker?.removeEventListener("message", onSwMsg);
+    };
+  }, []);
+
+  // tab cycler
+  useEffect(() => {
+    const start = Date.now();
+    const id = setInterval(() => {
+      const elapsed = Date.now() - start;
+      const p = Math.min(elapsed / TAB_DURATION, 1);
+      setProgress(p);
+      if (p >= 1) {
+        setActiveIdx(i => (i + 1) % TABS.length);
+      }
+    }, 80);
+    return () => clearInterval(id);
+  }, [activeIdx]);
+
+  const handleTabClick = (i) => {
+    setActiveIdx(i);
+  };
+
+  return (
+    <>
+      <Header now={now} />
+      <div className="hairline"></div>
+
+      <div className="content">
+        {TABS.map((T, i) => (
+          <div className={`tab-panel ${i === activeIdx ? 'active' : ''}`} key={T.id}>
+            <T.Comp now={now} data={data} />
+          </div>
+        ))}
+      </div>
+
+      <div className="footer">
+        <div className="tabs">
+          {TABS.map((T, i) => (
+            <span
+              key={T.id}
+              className={`tab-label ${i === activeIdx ? 'active' : ''}`}
+              onClick={() => handleTabClick(i)}
+            >
+              {T.label}
+            </span>
+          ))}
+        </div>
+        <span className="progress-num">{String(activeIdx + 1).padStart(2, '0')}/{String(TABS.length).padStart(2, '0')}</span>
+        <div className="progress">
+          <div className="progress-fill" style={{ width: `${progress * 100}%` }}></div>
+        </div>
+      </div>
+    </>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+
+</body>
+</html>
