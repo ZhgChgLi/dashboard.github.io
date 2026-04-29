@@ -1057,20 +1057,12 @@
   const GAS_URL = "https://script.google.com/macros/s/AKfycbxJoTtqTisPq8ZjJvSBzqAkQ8UIVc5XS9JdbHggmV4vGQ45paDCXYpNNgQwEr7VPaPxGw/exec";
 
   // === Key flow: accept ?key=... query OR #key=... hash. Persist to localStorage. ===
+  // URL is left as-is so bookmarks / shared links keep working.
   (function () {
     var query = new URLSearchParams(location.search).get("key");
     var hash  = new URLSearchParams(location.hash.replace(/^#/, "")).get("key");
     var key = query || hash;
-    if (key) {
-      localStorage.setItem("DASHBOARD_KEY", key);
-      // Strip the key from both query string and hash so it isn't kept in history.
-      var clean = location.pathname;
-      var qs = new URLSearchParams(location.search);
-      qs.delete("key");
-      var qsStr = qs.toString();
-      if (qsStr) clean += "?" + qsStr;
-      history.replaceState(null, "", clean);
-    }
+    if (key) localStorage.setItem("DASHBOARD_KEY", key);
   })();
 
   // === Restore last-known data for instant first paint ===
@@ -1078,12 +1070,26 @@
     window.DATA = JSON.parse(localStorage.getItem("DASHBOARD_DATA") || "{}");
   } catch (e) { window.DATA = {}; }
 
-  // === Register Service Worker ===
+  // === Register Service Worker, auto-reload on update ===
   if ("serviceWorker" in navigator) {
+    var swReloadGuard = false;
+    // When a new SW takes control of this page (after skipWaiting + clients.claim),
+    // browser fires `controllerchange`. Reload once so we get the new HTML/assets.
+    navigator.serviceWorker.addEventListener("controllerchange", function () {
+      if (swReloadGuard) return;
+      swReloadGuard = true;
+      location.reload();
+    });
     window.addEventListener("load", function () {
       navigator.serviceWorker.register("./sw.js").catch(function (err) {
         console.error("[sw] register failed:", err);
       });
+      // Poll for SW updates every 30 min in long-lived sessions (PWA on the wall).
+      setInterval(function () {
+        navigator.serviceWorker.getRegistration().then(function (reg) {
+          if (reg) reg.update();
+        });
+      }, 30 * 60 * 1000);
     });
   }
 </script>

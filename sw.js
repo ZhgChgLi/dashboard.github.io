@@ -6,7 +6,7 @@
 //
 // Bump CACHE_VERSION when you change static assets to force clients to refresh.
 
-const CACHE_VERSION = "v1";
+const CACHE_VERSION = "v2";
 const STATIC_CACHE = "dashboard-static-" + CACHE_VERSION;
 const PRECACHE_URLS = [
   "./",
@@ -45,9 +45,29 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // === Static + CDN: cache-first ===
+  // === Navigation (HTML): network-first so updates show without manual reload ===
+  if (req.mode === "navigate" || (req.destination === "document")) {
+    event.respondWith(handleNetworkFirst(req));
+    return;
+  }
+
+  // === Static assets + CDN (JS / CSS / fonts): cache-first ===
   event.respondWith(handleStatic(req));
 });
+
+async function handleNetworkFirst(req) {
+  try {
+    const res = await fetch(req);
+    if (res && (res.ok || res.type === "opaque")) {
+      const cache = await caches.open(STATIC);
+      try { await cache.put(req, res.clone()); } catch (e) {}
+    }
+    return res;
+  } catch (e) {
+    const cached = await caches.match(req);
+    return cached || Response.error();
+  }
+}
 
 async function handleGas(req) {
   const cache = await caches.open(STATIC_CACHE);
