@@ -411,10 +411,11 @@
 
   .ga-live-stats {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 16px;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
     margin-bottom: 14px;
   }
+  .ga-live-stats .ga-stat-num { font-size: 30px; }
   .ga-stat-pair { display: flex; flex-direction: column; gap: 1px; }
   .ga-stat-en {
     font-size: 9px;
@@ -1183,10 +1184,10 @@ function GAPanel({ data }) {
   const GA_TOP_PATHS = GA_LIVE.topPaths?.length ? GA_LIVE.topPaths : GA_TOP_PATHS_FALLBACK;
   const GA_ACTIVE_USERS = GA_LIVE.activeUsers ?? 47;
   const GA_PAGE_VIEWS   = GA_LIVE.pageViews   ?? 312;
+  const GA_USERS_30D    = GA_LIVE.users30d    ?? 18420;
   const GA_AD_REVENUE   = GA_CUM.adRevenue    ?? 1284.36;
   const GA_AD_CLICKS    = GA_CUM.adClicks     ?? 3421;
   const GA_TOTAL_VIEWS  = GA_CUM.totalViews   ?? 284531;
-  const GA_USERS_30D    = GA_CUM.users30d     ?? 18420;
   return (
     <div className="tab-panel-inner">
       <div className="panel-head">
@@ -1211,6 +1212,11 @@ function GAPanel({ data }) {
               <span className="ga-stat-zh">觀看次數</span>
               <span className="ga-stat-num">{GA_PAGE_VIEWS.toLocaleString()}</span>
             </div>
+            <div className="ga-stat-pair">
+              <span className="ga-stat-en">past 30 days</span>
+              <span className="ga-stat-zh">活躍使用者</span>
+              <span className="ga-stat-num">{GA_USERS_30D.toLocaleString()}</span>
+            </div>
           </div>
           <div className="ga-paths-head">
             <span>top pages · 網頁路徑</span>
@@ -1224,17 +1230,17 @@ function GAPanel({ data }) {
           ))}
         </div>
 
-        {/* === RIGHT · cumulative === */}
+        {/* === RIGHT · today + lifetime === */}
         <div className="ga-section cum">
           <div className="ga-section-head">
-            <span className="ga-section-zh">累　計</span>
-            <span className="ga-section-en">cumulative</span>
+            <span className="ga-section-zh">收　益</span>
+            <span className="ga-section-en">today · lifetime</span>
           </div>
           <div className="ga-cum-list">
             <div className="ga-cum-row">
               <div className="ga-cum-left">
                 <span className="ga-cum-zh">廣告收入</span>
-                <span className="ga-cum-en">ad revenue</span>
+                <span className="ga-cum-en">ad revenue · today</span>
               </div>
               <span className="ga-cum-num money">
                 <span className="currency">US$</span>
@@ -1245,23 +1251,16 @@ function GAPanel({ data }) {
             <div className="ga-cum-row">
               <div className="ga-cum-left">
                 <span className="ga-cum-zh">廣告點擊</span>
-                <span className="ga-cum-en">ad clicks</span>
+                <span className="ga-cum-en">ad clicks · today</span>
               </div>
               <span className="ga-cum-num">{GA_AD_CLICKS.toLocaleString()}</span>
             </div>
             <div className="ga-cum-row">
               <div className="ga-cum-left">
-                <span className="ga-cum-zh">瀏覽數</span>
+                <span className="ga-cum-zh">累計瀏覽</span>
                 <span className="ga-cum-en">total page views</span>
               </div>
               <span className="ga-cum-num">{GA_TOTAL_VIEWS.toLocaleString()}</span>
-            </div>
-            <div className="ga-cum-row">
-              <div className="ga-cum-left">
-                <span className="ga-cum-zh">活躍使用者</span>
-                <span className="ga-cum-en">past 30 days</span>
-              </div>
-              <span className="ga-cum-num">{GA_USERS_30D.toLocaleString()}</span>
             </div>
           </div>
         </div>
