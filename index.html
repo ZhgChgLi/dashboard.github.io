@@ -1402,11 +1402,13 @@ function WeatherIcon({ type, size = 22 }) {
 
 function WeatherPanel({ data }) {
   const WEATHER_CITIES = data?.weather?.cities || [];
+  const FORECAST_UNTIL = data?.weather?.forecastUntil;
+  const subTitle = FORECAST_UNTIL ? `${FORECAST_UNTIL} 前天氣預報` : 'Taipei Metro';
   return (
     <div className="tab-panel-inner">
       <div className="panel-head">
         <span className="panel-title">天　氣</span>
-        <span className="panel-title-en">Taipei Metro · 25.04°N</span>
+        <span className="panel-title-en">{subTitle}</span>
       </div>
       <div className="weather-split">
         {WEATHER_CITIES.map((c, i) => (
