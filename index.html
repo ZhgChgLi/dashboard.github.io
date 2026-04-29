@@ -1008,6 +1008,40 @@
     border: 1px solid var(--hairline);
     font-style: normal;
   }
+  .setup-error a { color: var(--stamp); }
+  .se-form {
+    display: flex;
+    gap: 8px;
+    align-items: stretch;
+    margin-top: 4px;
+  }
+  .se-form input {
+    width: 280px;
+    padding: 8px 12px;
+    font-family: 'Source Serif 4', serif;
+    font-size: 13px;
+    color: var(--ink);
+    background: var(--bg-deep);
+    border: 1px solid var(--hairline);
+    border-radius: 0;
+    outline: none;
+    letter-spacing: 0.05em;
+  }
+  .se-form input:focus { border-color: var(--stamp); }
+  .se-form button {
+    padding: 8px 16px;
+    font-family: 'Noto Serif TC', serif;
+    font-size: 12px;
+    letter-spacing: 0.4em;
+    color: #f5efde;
+    background: var(--stamp);
+    border: 1px solid var(--stamp-deep);
+    border-radius: 0;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .se-form button:hover { background: var(--stamp-deep); }
+  .se-form button:active { transform: translateY(1px); }
 
   /* fullscreen toggle — top-right of the dark backdrop */
   #fs-btn {
@@ -1632,24 +1666,54 @@ const TAB_DURATION = 15000;
 const POLL_INTERVAL_MS = 60_000; // 1 min — cache itself refreshes every 5 min server-side
 
 function SetupError({ kind }) {
+  const [val, setVal] = useState("");
+  const inputRef = useRef(null);
+  useEffect(() => { inputRef.current?.focus(); }, []);
+
+  const submit = (ev) => {
+    ev.preventDefault();
+    const k = val.trim();
+    if (!k) return;
+    localStorage.setItem("DASHBOARD_KEY", k);
+    location.reload();
+  };
+  const reset = () => {
+    localStorage.removeItem("DASHBOARD_KEY");
+    localStorage.removeItem("DASHBOARD_DATA");
+    location.reload();
+  };
+
   const titleZh = kind === "no-key" ? "金　鑰　未　設" : "資　料　無　法　取　得";
-  const titleEn = kind === "no-key" ? "No dashboard key configured" : "Empty response from server";
+  const titleEn = kind === "no-key" ? "Enter your dashboard key" : "Empty response from server";
+
   return (
     <div className="setup-error">
       <div className="se-stamp">未　驗　證</div>
       <div className="se-title">{titleZh}</div>
       <div className="se-desc" style={{fontStyle:'italic'}}>{titleEn}</div>
+
+      <form onSubmit={submit} className="se-form">
+        <input
+          ref={inputRef}
+          type="password"
+          autoComplete="off"
+          spellCheck={false}
+          placeholder="dashboard key"
+          value={val}
+          onChange={(e) => setVal(e.target.value)}
+        />
+        <button type="submit">送　出</button>
+      </form>
+
       {kind === "no-key" ? (
         <div className="se-desc">
-          首次使用請於網址加上一次性金鑰（兩種寫法擇一）：<br/>
-          <code>{location.origin + location.pathname}?key=&lt;your_key&gt;</code><br/>
-          <code>{location.origin + location.pathname}#key=&lt;your_key&gt;</code><br/>
-          金鑰會自動存入 localStorage，下次直接訪問即可。
+          也可從網址帶入一次：<code>?key=&lt;key&gt;</code> 或 <code>#key=&lt;key&gt;</code><br/>
+          送出後金鑰存入 localStorage，PWA 加到主畫面也能用。
         </div>
       ) : (
         <div className="se-desc">
           後端回了空資料，可能是金鑰錯誤或服務暫時不可用。<br/>
-          請確認 <code>localStorage.DASHBOARD_KEY</code> 與後端一致。
+          <a href="#" onClick={(e) => { e.preventDefault(); reset(); }}>清除金鑰並重新輸入</a>
         </div>
       )}
     </div>
