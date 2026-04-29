@@ -103,6 +103,21 @@
     font-family: 'Source Serif 4', serif;
     font-style: italic;
   }
+  .net-dot {
+    display: inline-block;
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    margin-right: 8px;
+    vertical-align: 1px;
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.08);
+  }
+  .net-dot-online  { background: #4a8a4a; }
+  .net-dot-stale   { background: #c79a3b; animation: net-dot-pulse 2.4s ease-in-out infinite; }
+  .net-dot-offline { background: #a0382e; animation: net-dot-pulse 1.4s ease-in-out infinite; }
+  @keyframes net-dot-pulse {
+    0%, 100% { opacity: 1; }
+    50%      { opacity: 0.35; }
+  }
   .date-line2 {
     display: flex;
     align-items: baseline;
@@ -1406,15 +1421,19 @@ const WEEKDAYS_ZH = ['星期日','星期一','星期二','星期三','星期四'
 const WEEKDAYS_EN = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 const MONTHS_EN = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
-function Header({ now }) {
+function Header({ now, netStatus }) {
   const y = now.getFullYear();
   const mo = now.getMonth() + 1;
   const d = now.getDate();
   const wd = now.getDay();
+  const dotTitle = netStatus === "offline" ? "離線" : netStatus === "stale" ? "資料來自快取" : "連線正常";
   return (
     <div className="header">
       <div className="date-block">
-        <div className="date-line1">ZhgChgLi</div>
+        <div className="date-line1">
+          <span className={`net-dot net-dot-${netStatus || 'online'}`} title={dotTitle} />
+          ZhgChgLi
+        </div>
         <div className="date-line2">
           <span className="date-num">{mo}<span className="slash">/</span>{d}</span>
           <span className="date-weekday">{WEEKDAYS_ZH[wd]}</span>
@@ -1970,7 +1989,20 @@ function App() {
   const [authFailed, setAuthFailed] = useState(false);
   const [data, setData] = useState(window.DATA || {});
   const [netError, setNetError] = useState(null); // { msg } | null
+  const [online, setOnline] = useState(() => navigator.onLine !== false);
   const [disabledTabs, setDisabledTabs] = useState(loadDisabledTabs);
+
+  useEffect(() => {
+    const on = () => setOnline(true);
+    const off = () => setOnline(false);
+    window.addEventListener("online", on);
+    window.addEventListener("offline", off);
+    return () => {
+      window.removeEventListener("online", on);
+      window.removeEventListener("offline", off);
+    };
+  }, []);
+  const netStatus = !online ? "offline" : (netError ? "stale" : "online");
 
   const toggleTabEnabled = (id) => {
     setDisabledTabs(prev => {
@@ -2081,7 +2113,7 @@ function App() {
 
   return (
     <>
-      <Header now={now} />
+      <Header now={now} netStatus={netStatus} />
       <div className="hairline"></div>
       {netError && (
         <div className="net-chip" title={netError.msg}>
