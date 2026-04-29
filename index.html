@@ -47,13 +47,12 @@
   }
 
   #stage {
-    width: 736px; height: 414px;
-    transform-origin: center center;
     position: relative;
+    width: 100%; height: 100%;
   }
 
   #device {
-    width: 736px; height: 414px;
+    width: 100%; height: 100%;
     background: var(--bg);
     background-image:
       url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.16  0 0 0 0 0.14  0 0 0 0 0.12  0 0 0 0.08 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"),
@@ -1043,27 +1042,6 @@
   .se-form button:hover { background: var(--stamp-deep); }
   .se-form button:active { transform: translateY(1px); }
 
-  /* fullscreen toggle — top-right of the dark backdrop */
-  #fs-btn {
-    position: fixed;
-    top: 14px; right: 14px;
-    width: 32px; height: 32px;
-    border: 1px solid rgba(255,255,255,0.18);
-    background: rgba(255,255,255,0.08);
-    color: #f1ebdc;
-    border-radius: 6px;
-    padding: 0;
-    cursor: pointer;
-    z-index: 100;
-    display: flex; align-items: center; justify-content: center;
-    transition: opacity 0.3s, background 0.2s;
-    opacity: 0.4;
-    -webkit-tap-highlight-color: transparent;
-  }
-  #fs-btn:hover, #fs-btn:focus { opacity: 1; background: rgba(255,255,255,0.18); outline: none; }
-  #fs-btn svg { width: 16px; height: 16px; }
-  :fullscreen #fs-btn, :-webkit-full-screen #fs-btn { opacity: 0.15; }
-
   /* seconds variant — smaller subordinate flip cards */
   .flip-card.sec {
     width: 28px;
@@ -1132,45 +1110,11 @@
   }
 </script>
 
-<button id="fs-btn" type="button" aria-label="Toggle fullscreen">
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>
-  </svg>
-</button>
-
 <script data-cfasync="false">
 // Hide mobile Safari URL bar on load by nudging the scroll position.
 window.addEventListener('load', function () {
   setTimeout(function () { window.scrollTo(0, 1); }, 0);
 });
-
-// Fullscreen toggle — works on Chrome, Edge, Firefox, Safari (with webkit prefix).
-(function () {
-  function inFs() {
-    return document.fullscreenElement
-        || document.webkitFullscreenElement
-        || document.msFullscreenElement;
-  }
-  function enter(el) {
-    var fn = el.requestFullscreen
-          || el.webkitRequestFullscreen
-          || el.msRequestFullscreen;
-    if (fn) fn.call(el).catch(function (e) { console.warn('[fs] enter', e); });
-  }
-  function exit() {
-    var fn = document.exitFullscreen
-          || document.webkitExitFullscreen
-          || document.msExitFullscreen;
-    if (fn) fn.call(document).catch(function (e) { console.warn('[fs] exit', e); });
-  }
-  document.addEventListener('DOMContentLoaded', function () {
-    var btn = document.getElementById('fs-btn');
-    if (!btn) return;
-    btn.addEventListener('click', function () {
-      if (inFs()) exit(); else enter(document.documentElement);
-    });
-  });
-})();
 </script>
 
 <div id="wrap">
@@ -1183,17 +1127,6 @@ window.addEventListener('load', function () {
 
 <script data-cfasync="false" type="text/babel">
 const { useState, useEffect, useRef, useMemo } = React;
-
-// ---- auto-scale ----
-function fitStage() {
-  const stage = document.getElementById('stage');
-  if (!stage) return;
-  const s = Math.min(window.innerWidth / 736, window.innerHeight / 414);
-  stage.style.transform = `scale(${s})`;
-}
-window.addEventListener('resize', fitStage);
-window.addEventListener('load', fitStage);
-fitStage();
 
 // Strip the trailing site-name suffix that ZhgChgLi pages add to their <title>.
 // e.g. "Apple Watch 米蘭錶帶開箱…  | ZhgChgLi Tech & Travel" → "Apple Watch 米蘭錶帶開箱…"
