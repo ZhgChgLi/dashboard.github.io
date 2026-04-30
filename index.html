@@ -2076,11 +2076,22 @@ function hostOf(url) {
 function NotFoundPanel({ data, now, lastFetchedAt }) {
   const rows = data?.notFound?.rows || [];
   const referralsRaw = data?.notFound?.referrals || [];
-  const referrals = [...referralsRaw].sort((a, b) => {
-    const sa = isSearchHost(a.referrer), sb = isSearchHost(b.referrer);
-    if (sa !== sb) return sa ? 1 : -1;
-    return (b.views || 0) - (a.views || 0);
-  });
+  // Aggregate referrals by host — the user only cares which channel
+  // brought traffic and how much, not which landing page it hit.
+  const referrals = (() => {
+    const m = new Map();
+    for (const r of referralsRaw) {
+      const host = hostOf(r.referrer) || "—";
+      const cur = m.get(host) || { host, views: 0, _refUrl: r.referrer };
+      cur.views += (r.views || 0);
+      m.set(host, cur);
+    }
+    return [...m.values()].sort((a, b) => {
+      const sa = isSearchHost(a._refUrl), sb = isSearchHost(b._refUrl);
+      if (sa !== sb) return sa ? 1 : -1;
+      return b.views - a.views;
+    });
+  })();
   const refreshLabel = refreshCountdown(data?.notFound?.refreshAt, now, lastFetchedAt) || "reference · last 24 h";
   const showRows = rows.length > 0;
   return (
@@ -2113,7 +2124,7 @@ function NotFoundPanel({ data, now, lastFetchedAt }) {
 
       <div className={`nf-section-title ${showRows ? 'nf-section-title-spaced' : ''}`}>
         <span className="nf-section-zh">網頁參照</span>
-        <span className="nf-section-en">landing · referrer</span>
+        <span className="nf-section-en">by referrer</span>
       </div>
       {referrals.length === 0 ? (
         <div className="nf-empty nf-empty-compact">
@@ -2122,18 +2133,14 @@ function NotFoundPanel({ data, now, lastFetchedAt }) {
         </div>
       ) : (
         <>
-          <div className="nf-head nf-head-ref">
+          <div className="nf-head">
             <span>referrer</span>
-            <span>landing</span>
             <span style={{textAlign:'right'}}>views</span>
           </div>
           {referrals.slice(0, showRows ? 6 : 12).map((r, i) => (
-            <div className="nf-row nf-row-ref" key={i}>
-              <span className="nf-ref-host" title={r.referrer || ''}>{hostOf(r.referrer)}</span>
-              <span className="nf-path" title={r.landing || '/'}>
-                <bdo>{decodePath(r.landing || '/')}</bdo>
-              </span>
-              <span className="nf-views">{(r.views || 0).toLocaleString()}</span>
+            <div className="nf-row" key={i}>
+              <span className="nf-ref-host" title={r._refUrl || ''}>{r.host}</span>
+              <span className="nf-views">{r.views.toLocaleString()}</span>
             </div>
           ))}
         </>
