@@ -976,7 +976,9 @@
     color: var(--ink-faint);
     letter-spacing: 0.15em;
   }
-  .nf-row-ref { grid-template-columns: 90px 1fr 60px; column-gap: 8px; }
+  /* source · medium · count — source takes the remaining width so long
+     hostnames like tw.search.yahoo.com / chatgpt.com show fully. */
+  .nf-row-ref { grid-template-columns: minmax(0, 1fr) 76px 60px; column-gap: 10px; }
   .nf-ref-host {
     font-family: 'Source Serif 4', serif;
     font-style: italic;
@@ -989,8 +991,8 @@
   }
   .nf-head-ref {
     display: grid;
-    grid-template-columns: 90px 1fr 60px;
-    column-gap: 8px;
+    grid-template-columns: minmax(0, 1fr) 76px 60px;
+    column-gap: 10px;
   }
   .nf-empty-compact { padding: 16px 0; gap: 4px; }
   .nf-empty-compact .nf-empty-zh { font-size: 14px; letter-spacing: 0.2em; }
@@ -1468,7 +1470,7 @@
 
     /* — Reference (404 + referrals) — */
     .nf-row-ref, .nf-head-ref {
-      grid-template-columns: 78px 1fr 50px;
+      grid-template-columns: minmax(0, 1fr) 64px 50px;
       column-gap: 8px;
     }
     .nf-ref-host { font-size: 12px; }
@@ -1483,7 +1485,7 @@
     .flip-card.sec, .clock-colon.sec { display: none; }
     .stocks-row { grid-template-columns: minmax(0, 1fr) 52px 56px 64px; font-size: 12px; }
     .weather-temp { font-size: 48px; }
-    .nf-row-ref, .nf-head-ref { grid-template-columns: 64px 1fr 44px; }
+    .nf-row-ref, .nf-head-ref { grid-template-columns: minmax(0, 1fr) 56px 44px; }
   }
 
   /* === Header marquee (shows when a message-board note is set) === */
@@ -2254,13 +2256,32 @@ function pathOf(url) {
   }
 }
 
+// GA4 first-user sources we want pushed to the bottom of the list —
+// the user already knows search/direct dominates and wants the
+// long-tail referrers to stand out at the top.
+const SOURCE_DEPRIORITIZE = new Set([
+  "google", "(direct)", "tw.search.yahoo.com", "hk.search.yahoo.com",
+  "bing", "chatgpt.com", "perplexity.ai"
+]);
+function isDeprioritizedSource(s) {
+  const k = (s || "(direct)").toLowerCase();
+  return SOURCE_DEPRIORITIZE.has(k);
+}
+
 function NotFoundPanel({ data, now, lastFetchedAt }) {
   const rows = data?.notFound?.rows || [];
   // GA4 first-user attribution: source / medium / newUsers — direct
   // and organic show up here, unlike raw `pageReferrer`.
+  // Common search engines / direct / AI assistants are pushed to the
+  // bottom; within each group sort by newUsers desc.
   const sources = (data?.notFound?.sources || [])
     .slice()
-    .sort((a, b) => (b.newUsers || 0) - (a.newUsers || 0));
+    .sort((a, b) => {
+      const da = isDeprioritizedSource(a.source);
+      const db = isDeprioritizedSource(b.source);
+      if (da !== db) return da ? 1 : -1;
+      return (b.newUsers || 0) - (a.newUsers || 0);
+    });
   const refreshLabel = refreshCountdown(data?.notFound?.refreshAt, now, lastFetchedAt) || "reference · last 24 h";
   const showRows = rows.length > 0;
   return (
