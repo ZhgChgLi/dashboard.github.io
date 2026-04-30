@@ -1722,7 +1722,7 @@ const { useState, useEffect, useRef, useMemo } = React;
 // <App>'s `now` clock so it ticks every second.
 function refreshCountdown(refreshAt, now, lastFetchedAt) {
   const prefix = lastFetchedAt
-    ? `${pad2(lastFetchedAt.getHours())}:${pad2(lastFetchedAt.getMinutes())}:${pad2(lastFetchedAt.getSeconds())} · `
+    ? `${pad2(lastFetchedAt.getMinutes())}:${pad2(lastFetchedAt.getSeconds())} · `
     : "";
   if (!refreshAt) return prefix || null;
   const ms = refreshAt - now.getTime();
