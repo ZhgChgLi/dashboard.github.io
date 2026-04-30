@@ -2300,8 +2300,25 @@ function App() {
         setNetError({ msg: String(e?.message || e || "network error") });
       }
     };
-    fetchData();
-    const id = setInterval(fetchData, POLL_INTERVAL_MS);
+    let lastFetchAt = 0;
+    const tryFetch = () => {
+      const t = Date.now();
+      if (t - lastFetchAt < 3000) return;
+      lastFetchAt = t;
+      fetchData();
+    };
+    tryFetch();
+    const id = setInterval(tryFetch, POLL_INTERVAL_MS);
+
+    // iOS/Android suspend timers when the tab is hidden. Refetch on resume
+    // so coming back to the dashboard always pulls fresh data — no page or
+    // SW reload, just the JSON.
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") tryFetch();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener("pageshow", onVisibility);
+    window.addEventListener("focus", onVisibility);
 
     // SW tells us when it served a stale (cached) response because the
     // network failed — show a chip so the user knows the data is from cache.
@@ -2314,6 +2331,9 @@ function App() {
 
     return () => {
       clearInterval(id);
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("pageshow", onVisibility);
+      window.removeEventListener("focus", onVisibility);
       navigator.serviceWorker?.removeEventListener("message", onSwMsg);
     };
   }, []);
