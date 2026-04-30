@@ -1554,16 +1554,22 @@ document.addEventListener('DOMContentLoaded', function () {
 <script data-cfasync="false" type="text/babel">
 const { useState, useEffect, useRef, useMemo } = React;
 
-// Render a "next refresh in mm:ss" label given an epoch-ms expiry timestamp.
-// Fed by the parent <App>'s `now` clock so it ticks every second.
-function refreshCountdown(refreshAt, now) {
-  if (!refreshAt) return null;
+// Render a "[HH:MM:SS] 下次更新 mm:ss" label given an epoch-ms expiry
+// timestamp. `lastFetchedAt` (Date|null) is prepended so the user can
+// see when the JSON was last successfully pulled. Fed by the parent
+// <App>'s `now` clock so it ticks every second.
+function refreshCountdown(refreshAt, now, lastFetchedAt) {
+  const prefix = lastFetchedAt
+    ? `${pad2(lastFetchedAt.getHours())}:${pad2(lastFetchedAt.getMinutes())}:${pad2(lastFetchedAt.getSeconds())} · `
+    : "";
+  if (!refreshAt) return prefix || null;
   const ms = refreshAt - now.getTime();
-  if (ms <= 0) return "更新中…";
+  if (ms <= 0) return prefix + "更新中…";
   const total = Math.ceil(ms / 1000);
   const m = Math.floor(total / 60), s = total % 60;
-  return `下次更新 ${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  return `${prefix}下次更新 ${pad2(m)}:${pad2(s)}`;
 }
+function pad2(n) { return String(n).padStart(2, '0'); }
 
 // Decode any %XX escapes so paths read naturally; CSS handles the head-trim.
 function decodePath(s) {
@@ -1676,14 +1682,14 @@ function Header({ now, netStatus }) {
 // =================================================================
 // TAB 1 — STOCKS
 // =================================================================
-function StocksPanel({ data, now }) {
+function StocksPanel({ data, now, lastFetchedAt }) {
   const STOCK_DATA = data?.stocks?.holdings || [];
   const totalValue = STOCK_DATA.reduce((s, x) => s + x.qty * x.price, 0);
   const totalCost = STOCK_DATA.reduce((s, x) => s + x.qty * (x.cost ?? 0), 0);
   const totalChg = STOCK_DATA.reduce((s, x) => s + x.qty * x.price * (x.chg / 100), 0);
   const totalChgPct = (totalChg / (totalValue - totalChg)) * 100;
   const isUp = totalChg >= 0;
-  const refreshLabel = refreshCountdown(data?.stocks?.refreshAt, now) || "Portfolio · TWSE";
+  const refreshLabel = refreshCountdown(data?.stocks?.refreshAt, now, lastFetchedAt) || "Portfolio · TWSE";
 
   return (
     <div className="tab-panel-inner">
@@ -1746,7 +1752,7 @@ function StocksPanel({ data, now }) {
 // =================================================================
 // TAB 2 — GA
 // =================================================================
-function GAPanel({ data, now }) {
+function GAPanel({ data, now, lastFetchedAt }) {
   const GA_LIVE = data?.ga?.live || {};
   const GA_CUM  = data?.ga?.cum  || {};
   const GA_TOP_PATHS = GA_LIVE.topPaths || [];
@@ -1761,7 +1767,7 @@ function GAPanel({ data, now }) {
       <div className="panel-head">
         <span className="panel-title">流　量</span>
         <span className="panel-title-en">
-          {refreshCountdown(GA_LIVE.refreshAt, now) || "Web Analytics · GA4"}
+          {refreshCountdown(GA_LIVE.refreshAt, now, lastFetchedAt) || "Web Analytics · GA4"}
         </span>
       </div>
       <div className="ga-split">
@@ -2067,7 +2073,7 @@ function hostOf(url) {
   catch (e) { return url.replace(/^https?:\/\//, "").split("/")[0] || url; }
 }
 
-function NotFoundPanel({ data, now }) {
+function NotFoundPanel({ data, now, lastFetchedAt }) {
   const rows = data?.notFound?.rows || [];
   const referralsRaw = data?.notFound?.referrals || [];
   const referrals = [...referralsRaw].sort((a, b) => {
@@ -2075,7 +2081,7 @@ function NotFoundPanel({ data, now }) {
     if (sa !== sb) return sa ? 1 : -1;
     return (b.views || 0) - (a.views || 0);
   });
-  const refreshLabel = refreshCountdown(data?.notFound?.refreshAt, now) || "reference · last 24 h";
+  const refreshLabel = refreshCountdown(data?.notFound?.refreshAt, now, lastFetchedAt) || "reference · last 24 h";
   const showRows = rows.length > 0;
   return (
     <div className="tab-panel-inner">
@@ -2243,6 +2249,7 @@ function App() {
   const [hasKey] = useState(() => !!localStorage.getItem("DASHBOARD_KEY"));
   const [authFailed, setAuthFailed] = useState(false);
   const [data, setData] = useState(window.DATA || {});
+  const [lastFetchedAt, setLastFetchedAt] = useState(null);
   const [netError, setNetError] = useState(null); // { msg } | null
   const [online, setOnline] = useState(() => navigator.onLine !== false);
   const [disabledTabs, setDisabledTabs] = useState(loadDisabledTabs);
@@ -2298,6 +2305,7 @@ function App() {
         setAuthFailed(false);
         setNetError(null);
         setData(json);
+        setLastFetchedAt(new Date());
         try { localStorage.setItem("DASHBOARD_DATA", JSON.stringify(json)); } catch (e) {}
       } catch (e) {
         console.error("[fetch]", e);
@@ -2399,7 +2407,7 @@ function App() {
       <div className="content">
         {TABS.map((T, i) => (
           <div className={`tab-panel ${i === activeIdx ? 'active' : ''}`} key={T.id}>
-            <T.Comp now={now} data={data} />
+            <T.Comp now={now} data={data} lastFetchedAt={lastFetchedAt} />
           </div>
         ))}
       </div>
