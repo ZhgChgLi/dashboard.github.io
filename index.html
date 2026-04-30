@@ -791,6 +791,7 @@
     color: var(--stamp);
     font-weight: 500;
   }
+  .cal-now.is-live::before { content: '現在'; }
   .cal-event-title {
     font-family: 'Noto Serif TC', serif;
     font-size: 18px;
@@ -1908,6 +1909,12 @@ function CalendarPanel({ data }) {
   const isTomorrow = !todayLike.length && !!tomorrowEvents.length;
   const rest = isTomorrow ? tomorrowEvents.slice(1) : todayLike.slice(1);
 
+  const nowMs = now.getTime();
+  const nextLive = !!next && !isTomorrow
+    && next.startAt != null
+    && nowMs >= next.startAt
+    && (next.endAt == null || nowMs < next.endAt);
+
   const headerCount = todayLike.length || tomorrowEvents.length;
   const headerLabel = isTomorrow
     ? `Tomorrow · ${headerCount} timed event${headerCount === 1 ? '' : 's'}`
@@ -1934,7 +1941,7 @@ function CalendarPanel({ data }) {
         </div>
       )}
       {next ? (
-        <div className={`cal-now ${isTomorrow ? 'is-tomorrow' : ''}`}>
+        <div className={`cal-now ${isTomorrow ? 'is-tomorrow' : ''} ${nextLive ? 'is-live' : ''}`}>
           <div>
             <div className="cal-event-title">{next.name}</div>
             <div className="cal-event-meta">{next.time} &nbsp;·&nbsp; {next.loc || '—'}</div>
@@ -1946,6 +1953,14 @@ function CalendarPanel({ data }) {
                 <div className="cal-cd-unit">tomorrow</div>
               </>
             ) : (() => {
+              if (nextLive) {
+                return (
+                  <>
+                    <div className="cal-cd-num cal-cd-tmr">進行中</div>
+                    <div className="cal-cd-unit">in progress</div>
+                  </>
+                );
+              }
               const m = Math.max(0, next.minutesUntil ?? 0);
               const useHours = m > 60;
               return (
