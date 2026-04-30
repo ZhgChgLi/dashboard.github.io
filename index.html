@@ -1453,6 +1453,124 @@
     .weather-temp { font-size: 48px; }
     .nf-row-ref, .nf-head-ref { grid-template-columns: 64px 1fr 44px; }
   }
+
+  /* === Header marquee (shows when a message-board note is set) === */
+  .hdr-marquee {
+    display: inline-flex;
+    align-items: baseline;
+    margin-left: 14px;
+    max-width: min(58vw, 720px);
+    overflow: hidden;
+    vertical-align: 1px;
+    -webkit-mask-image: linear-gradient(to right, transparent 0, #000 24px, #000 calc(100% - 24px), transparent 100%);
+            mask-image: linear-gradient(to right, transparent 0, #000 24px, #000 calc(100% - 24px), transparent 100%);
+  }
+  .hdr-marquee-track {
+    display: inline-flex;
+    white-space: nowrap;
+    animation: hdr-marquee-scroll 32s linear infinite;
+    font-family: 'Noto Serif TC', 'Source Serif 4', serif;
+    font-style: italic;
+    font-weight: 400;
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    color: var(--stamp);
+    text-transform: none;
+  }
+  .hdr-marquee-track > span { padding-right: 56px; }
+  .hdr-marquee-track .hdr-marquee-mark {
+    color: var(--ink-faint);
+    margin-right: 10px;
+    font-style: normal;
+    letter-spacing: 0;
+  }
+  @keyframes hdr-marquee-scroll {
+    from { transform: translateX(0); }
+    to   { transform: translateX(-50%); }
+  }
+  @media (max-width: 720px) {
+    .hdr-marquee { max-width: 50vw; margin-left: 8px; }
+    .hdr-marquee-track { font-size: 10px; letter-spacing: 0.14em; }
+    .hdr-marquee-track > span { padding-right: 40px; }
+  }
+
+  /* === Message board panel === */
+  .msg-wrap { display: flex; flex-direction: column; gap: 14px; height: 100%; }
+  .msg-current {
+    border: 1px solid var(--hairline);
+    background: var(--bg-deep);
+    padding: 16px 18px;
+    position: relative;
+    font-family: 'Noto Serif TC', serif;
+    font-size: 16px;
+    line-height: 1.7;
+    color: var(--ink);
+    white-space: pre-wrap;
+    word-break: break-word;
+    min-height: 64px;
+  }
+  .msg-current::before {
+    content: 'NOTE';
+    position: absolute;
+    top: -8px; left: 16px;
+    background: var(--bg);
+    padding: 0 8px;
+    font-family: 'Source Serif 4', serif;
+    font-style: italic;
+    font-size: 10px;
+    letter-spacing: 0.4em;
+    color: var(--stamp);
+  }
+  .msg-current.empty { color: var(--ink-faint); font-style: italic; }
+  .msg-form { display: flex; flex-direction: column; gap: 8px; }
+  .msg-textarea {
+    width: 100%;
+    min-height: 96px;
+    resize: vertical;
+    font-family: 'Noto Serif TC', serif;
+    font-size: 14px;
+    line-height: 1.6;
+    padding: 10px 12px;
+    background: var(--bg);
+    color: var(--ink);
+    border: 1px solid var(--hairline);
+    outline: none;
+    box-sizing: border-box;
+  }
+  .msg-textarea:focus { border-color: var(--ink-soft); }
+  .msg-actions { display: flex; gap: 10px; align-items: center; }
+  .msg-btn {
+    font-family: 'Source Serif 4', serif;
+    font-size: 11px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    padding: 8px 18px;
+    background: var(--bg);
+    color: var(--ink);
+    border: 1px solid var(--ink-soft);
+    cursor: pointer;
+  }
+  .msg-btn:hover { background: var(--bg-deep); }
+  .msg-btn.primary { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+  .msg-btn.primary:hover { background: var(--stamp); border-color: var(--stamp); }
+  .msg-btn[disabled] { opacity: 0.4; cursor: not-allowed; }
+  .msg-btn.danger { color: var(--stamp); border-color: var(--stamp); }
+  .msg-counter {
+    font-family: 'Source Serif 4', serif;
+    font-style: italic;
+    font-size: 11px;
+    color: var(--ink-faint);
+    margin-left: auto;
+    font-feature-settings: 'lnum', 'tnum';
+  }
+  .msg-status {
+    font-family: 'Source Serif 4', serif;
+    font-style: italic;
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    color: var(--ink-soft);
+  }
+  .msg-status.err { color: var(--stamp); }
 </style>
 </head>
 <body>
@@ -1655,7 +1773,7 @@ const WEEKDAYS_ZH = ['星期日','星期一','星期二','星期三','星期四'
 const WEEKDAYS_EN = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 const MONTHS_EN = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
-function Header({ now, netStatus }) {
+function Header({ now, netStatus, message }) {
   const y = now.getFullYear();
   const mo = now.getMonth() + 1;
   const d = now.getDate();
@@ -1667,6 +1785,14 @@ function Header({ now, netStatus }) {
         <div className="date-line1">
           <span className={`net-dot net-dot-${netStatus || 'online'}`} title={dotTitle} />
           ZhgChgLi
+          {message && (
+            <span className="hdr-marquee" title={message}>
+              <span className="hdr-marquee-track">
+                <span><span className="hdr-marquee-mark">§</span>{message}</span>
+                <span><span className="hdr-marquee-mark">§</span>{message}</span>
+              </span>
+            </span>
+          )}
         </div>
         <div className="date-line2">
           <span className="date-num">{mo}<span className="slash">/</span>{d}</span>
@@ -2162,6 +2288,100 @@ function NotFoundPanel({ data, now, lastFetchedAt }) {
 }
 
 // =================================================================
+// TAB 7 — MESSAGE BOARD
+// =================================================================
+function MessagePanel({ data, message, setMessage }) {
+  const stored = (message ?? data?.message) || "";
+  const [draft, setDraft] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [status, setStatus] = useState(null); // { msg, err }
+  const MAX = 500;
+
+  const callApi = async (params) => {
+    setBusy(true);
+    setStatus(null);
+    try {
+      const key = localStorage.getItem("DASHBOARD_KEY") || "";
+      const url = GAS_URL + "?key=" + encodeURIComponent(key)
+        + Object.entries(params).map(([k, v]) => `&${k}=${encodeURIComponent(v)}`).join("");
+      const res = await fetch(url, { redirect: "follow" });
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      const json = await res.json();
+      if (!json.ok) throw new Error("server rejected");
+      setMessage(json.message || "");
+      return json;
+    } catch (e) {
+      setStatus({ msg: String(e?.message || e), err: true });
+      throw e;
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const onSubmit = async () => {
+    const v = draft.trim();
+    if (!v) return;
+    try {
+      await callApi({ action: "setMessage", value: v.slice(0, MAX) });
+      setDraft("");
+      setStatus({ msg: "已送出", err: false });
+    } catch (e) {}
+  };
+
+  const onClear = async () => {
+    if (!stored) return;
+    try {
+      await callApi({ action: "clearMessage" });
+      setStatus({ msg: "已清除", err: false });
+    } catch (e) {}
+  };
+
+  return (
+    <div className="tab-panel-inner msg-wrap">
+      <div className="panel-head">
+        <span className="panel-title">　留言板</span>
+        <span className="panel-title-en">message board · shared</span>
+      </div>
+
+      <div className={`msg-current ${stored ? "" : "empty"}`}>
+        {stored || "尚無留言"}
+      </div>
+
+      <div className="msg-form">
+        <textarea
+          className="msg-textarea"
+          maxLength={MAX}
+          placeholder="輸入想說的話，送出後同步到所有裝置…"
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          disabled={busy}
+        />
+        <div className="msg-actions">
+          <button
+            type="button"
+            className="msg-btn primary"
+            onClick={onSubmit}
+            disabled={busy || !draft.trim()}
+          >送　出</button>
+          <button
+            type="button"
+            className="msg-btn danger"
+            onClick={onClear}
+            disabled={busy || !stored}
+          >清除留言</button>
+          {status && (
+            <span className={`msg-status ${status.err ? "err" : ""}`}>
+              {status.err ? "錯誤 · " : "✓ "}{status.msg}
+            </span>
+          )}
+          <span className="msg-counter">{draft.length} / {MAX}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// =================================================================
 // MAIN APP
 // =================================================================
 const TABS = [
@@ -2181,6 +2401,8 @@ const TABS = [
     isEmpty: d => !d?.calendar?.events?.length },
   { id: 'cd',      label: '倒數日',     en: 'D-DAY',      Comp: CountdownPanel,
     isEmpty: d => !d?.countdown?.events?.length },
+  { id: 'msg',     label: '留言板',     en: 'NOTE',       Comp: MessagePanel,
+    isEmpty: () => false, noCycle: true },
 ];
 const TAB_DURATION = 15000;
 
@@ -2269,6 +2491,10 @@ function App() {
   const [authFailed, setAuthFailed] = useState(false);
   const [data, setData] = useState(window.DATA || {});
   const [lastFetchedAt, setLastFetchedAt] = useState(null);
+  const [message, setMessage] = useState(() => {
+    try { return (JSON.parse(localStorage.getItem("DASHBOARD_DATA") || "{}").message) || ""; }
+    catch (e) { return ""; }
+  });
   const [netError, setNetError] = useState(null); // { msg } | null
   const [online, setOnline] = useState(() => navigator.onLine !== false);
   const [disabledTabs, setDisabledTabs] = useState(loadDisabledTabs);
@@ -2325,6 +2551,7 @@ function App() {
         setNetError(null);
         setData(json);
         setLastFetchedAt(new Date());
+        setMessage(json.message || "");
         try { localStorage.setItem("DASHBOARD_DATA", JSON.stringify(json)); } catch (e) {}
       } catch (e) {
         console.error("[fetch]", e);
@@ -2377,6 +2604,8 @@ function App() {
   const disabledRef = useRef(disabledTabs);
   useEffect(() => { disabledRef.current = disabledTabs; }, [disabledTabs]);
   useEffect(() => {
+    // Park on no-cycle tabs (留言板) until the user navigates away manually.
+    if (TABS[activeIdx]?.noCycle) { setProgress(0); return; }
     const start = Date.now();
     const id = setInterval(() => {
       const elapsed = Date.now() - start;
@@ -2387,7 +2616,7 @@ function App() {
           for (let n = 1; n <= TABS.length; n++) {
             const next = (i + n) % TABS.length;
             const T = TABS[next];
-            if (!disabledRef.current.has(T.id) && !T.isEmpty?.(dataRef.current)) return next;
+            if (!T.noCycle && !disabledRef.current.has(T.id) && !T.isEmpty?.(dataRef.current)) return next;
           }
           return i;
         });
@@ -2402,7 +2631,7 @@ function App() {
     for (let n = 1; n <= TABS.length; n++) {
       const next = (activeIdx + n) % TABS.length;
       const T = TABS[next];
-      if (!disabledTabs.has(T.id) && !T.isEmpty?.(data)) { setActiveIdx(next); return; }
+      if (!T.noCycle && !disabledTabs.has(T.id) && !T.isEmpty?.(data)) { setActiveIdx(next); return; }
     }
   }, [disabledTabs]);
 
@@ -2415,7 +2644,7 @@ function App() {
 
   return (
     <>
-      <Header now={now} netStatus={netStatus} />
+      <Header now={now} netStatus={netStatus} message={message} />
       <div className="hairline"></div>
       {netError && (
         <div className="net-chip" title={netError.msg}>
@@ -2426,7 +2655,7 @@ function App() {
       <div className="content">
         {TABS.map((T, i) => (
           <div className={`tab-panel ${i === activeIdx ? 'active' : ''}`} key={T.id}>
-            <T.Comp now={now} data={data} lastFetchedAt={lastFetchedAt} />
+            <T.Comp now={now} data={data} lastFetchedAt={lastFetchedAt} message={message} setMessage={setMessage} />
           </div>
         ))}
       </div>
