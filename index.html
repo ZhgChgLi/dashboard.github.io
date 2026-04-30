@@ -2086,11 +2086,7 @@ function NotFoundPanel({ data, now, lastFetchedAt }) {
       cur.views += (r.views || 0);
       m.set(host, cur);
     }
-    return [...m.values()].sort((a, b) => {
-      const sa = isSearchHost(a._refUrl), sb = isSearchHost(b._refUrl);
-      if (sa !== sb) return sa ? 1 : -1;
-      return b.views - a.views;
-    });
+    return [...m.values()].sort((a, b) => b.views - a.views);
   })();
   const refreshLabel = refreshCountdown(data?.notFound?.refreshAt, now, lastFetchedAt) || "reference · last 24 h";
   const showRows = rows.length > 0;
