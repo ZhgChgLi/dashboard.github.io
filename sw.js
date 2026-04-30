@@ -10,12 +10,13 @@
 //
 // Bump CACHE_VERSION when you change static assets to force clients to refresh.
 
-const CACHE_VERSION = "v5";
+const CACHE_VERSION = "v6";
 const STATIC_CACHE = "dashboard-static-" + CACHE_VERSION;
 const PRECACHE_URLS = [
   "./",
   "./index.html",
-  "./manifest.json"
+  "./manifest.json",
+  "./sw.js"
 ];
 const GAS_HOSTS = ["script.google.com", "script.googleusercontent.com"];
 
@@ -65,7 +66,14 @@ async function handleNetworkFirst(req) {
     }
     return res;
   } catch (e) {
-    const cached = await caches.match(req);
+    // Offline: try exact match first (preserves ?key=…), then ignore the
+    // query string so a fresh `?key=abc` install still finds the precached
+    // shell, then fall through to the bare index.html / scope root.
+    const cached =
+      (await caches.match(req)) ||
+      (await caches.match(req, { ignoreSearch: true })) ||
+      (await caches.match("./index.html")) ||
+      (await caches.match("./"));
     return cached || Response.error();
   }
 }

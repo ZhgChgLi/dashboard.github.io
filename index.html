@@ -774,7 +774,11 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 12px;
   }
+  /* Left column: title/meta — must be allowed to shrink so the countdown on
+     the right keeps its full width (otherwise `小　時　後` wraps in portrait). */
+  .cal-now > div:first-child { min-width: 0; flex: 1 1 auto; }
   .cal-now::before {
     content: '即將';
     position: absolute;
@@ -794,6 +798,9 @@
     color: var(--ink);
     margin-bottom: 4px;
     letter-spacing: 0.05em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .cal-event-meta {
     font-family: 'Source Serif 4', serif;
@@ -809,7 +816,10 @@
   .cal-countdown {
     text-align: right;
     font-family: 'Source Serif 4', serif;
+    flex: 0 0 auto;
+    white-space: nowrap;
   }
+  .cal-cd-num, .cal-cd-unit { white-space: nowrap; }
   .cal-cd-num {
     font-size: 48px;
     font-weight: 700;
