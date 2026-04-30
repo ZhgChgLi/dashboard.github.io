@@ -1897,7 +1897,7 @@ function WeatherPanel({ data }) {
 // =================================================================
 // TAB 4 — CALENDAR
 // =================================================================
-function CalendarPanel({ data }) {
+function CalendarPanel({ data, now }) {
   const CAL_EVENTS = data?.calendar?.events || [];
 
   // Pull all-day events out — they live in their own strip, never in 即將.
