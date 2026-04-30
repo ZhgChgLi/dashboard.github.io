@@ -2072,19 +2072,31 @@ function hostOf(url) {
   try { return new URL(url).host.replace(/^www\./, ""); }
   catch (e) { return url.replace(/^https?:\/\//, "").split("/")[0] || url; }
 }
+function pathOf(url) {
+  if (!url) return "";
+  try {
+    const u = new URL(url);
+    const p = (u.pathname || "") + (u.search || "");
+    return p === "/" ? "" : p;
+  } catch (e) {
+    const i = url.indexOf("/", url.indexOf("//") + 2);
+    return i >= 0 ? url.slice(i) : "";
+  }
+}
 
 function NotFoundPanel({ data, now, lastFetchedAt }) {
   const rows = data?.notFound?.rows || [];
   const referralsRaw = data?.notFound?.referrals || [];
-  // Aggregate referrals by host — the user only cares which channel
-  // brought traffic and how much, not which landing page it hit.
+  // Show the source domain alongside the actual referrer URL — the user
+  // wants to see *which* domain brought traffic and *which* page on that
+  // domain linked here (no landing-side path).
   const referrals = (() => {
     const m = new Map();
     for (const r of referralsRaw) {
-      const host = hostOf(r.referrer) || "—";
-      const cur = m.get(host) || { host, views: 0, _refUrl: r.referrer };
+      const url = r.referrer || "";
+      const cur = m.get(url) || { url, host: hostOf(url), path: pathOf(url), views: 0 };
       cur.views += (r.views || 0);
-      m.set(host, cur);
+      m.set(url, cur);
     }
     return [...m.values()].sort((a, b) => b.views - a.views);
   })();
@@ -2120,7 +2132,7 @@ function NotFoundPanel({ data, now, lastFetchedAt }) {
 
       <div className={`nf-section-title ${showRows ? 'nf-section-title-spaced' : ''}`}>
         <span className="nf-section-zh">網頁參照</span>
-        <span className="nf-section-en">by referrer</span>
+        <span className="nf-section-en">domain · referrer</span>
       </div>
       {referrals.length === 0 ? (
         <div className="nf-empty nf-empty-compact">
@@ -2129,13 +2141,17 @@ function NotFoundPanel({ data, now, lastFetchedAt }) {
         </div>
       ) : (
         <>
-          <div className="nf-head">
+          <div className="nf-head nf-head-ref">
+            <span>domain</span>
             <span>referrer</span>
             <span style={{textAlign:'right'}}>views</span>
           </div>
           {referrals.slice(0, showRows ? 6 : 12).map((r, i) => (
-            <div className="nf-row" key={i}>
-              <span className="nf-ref-host" title={r._refUrl || ''}>{r.host}</span>
+            <div className="nf-row nf-row-ref" key={i}>
+              <span className="nf-ref-host" title={r.url}>{r.host}</span>
+              <span className="nf-path" title={r.url}>
+                <bdo>{decodePath(r.path) || '/'}</bdo>
+              </span>
               <span className="nf-views">{r.views.toLocaleString()}</span>
             </div>
           ))}
