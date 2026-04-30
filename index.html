@@ -1894,21 +1894,24 @@ function StocksPanel({ data, now, lastFetchedAt }) {
           <span style={{textAlign:'right'}}>持股</span>
           <span style={{textAlign:'right'}}>成本</span>
           <span style={{textAlign:'right'}}>股價</span>
-          <span style={{textAlign:'right'}}>漲跌</span>
+          <span style={{textAlign:'right'}}>總漲跌</span>
           <span style={{textAlign:'right'}}>當日收益</span>
         </div>
         {STOCK_DATA.map(s => {
           const cost = s.cost ?? 0;
           const earn = (s.price - cost) * s.qty;
           const earnUp = earn > 0;
+          // Total (unrealized) gain percentage vs cost basis. Uses
+          // 0 when cost is missing/zero so we don't divide by zero.
+          const totalPct = cost > 0 ? ((s.price - cost) / cost) * 100 : 0;
           return (
             <div className="stocks-row" key={s.code}>
               <span className="stk-name">{s.name}</span>
               <span className="stk-num">{s.qty.toLocaleString(undefined, { maximumFractionDigits: 4 })}</span>
               <span className="stk-num">{cost.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
               <span className="stk-num">{s.price.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
-              <span className={`stk-num ${s.chg > 0 ? 'up' : s.chg < 0 ? 'down' : ''}`}>
-                {s.chg > 0 ? '+' : ''}{s.chg.toFixed(2)}%
+              <span className={`stk-num ${totalPct > 0 ? 'up' : totalPct < 0 ? 'down' : ''}`}>
+                {totalPct > 0 ? '+' : ''}{totalPct.toFixed(2)}%
               </span>
               <span className={`stk-num ${earn > 0 ? 'up' : earn < 0 ? 'down' : ''}`}>
                 {earnUp ? '+' : ''}{Math.round(earn).toLocaleString()}
