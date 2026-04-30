@@ -132,9 +132,36 @@
     top: 0; left: 0; right: 0;
     height: calc(104px + env(safe-area-inset-top));
     display: flex;
-    align-items: stretch;
-    padding: calc(14px + env(safe-area-inset-top)) calc(24px + env(safe-area-inset-right)) 0 calc(28px + env(safe-area-inset-left));
+    flex-direction: column;
+    padding: calc(10px + env(safe-area-inset-top)) calc(24px + env(safe-area-inset-right)) 0 calc(28px + env(safe-area-inset-left));
     z-index: 2;
+    gap: 6px;
+  }
+  .header-strip {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    height: 22px;
+    min-width: 0;
+    overflow: hidden;
+    flex: 0 0 auto;
+  }
+  .header-brand {
+    font-family: 'Source Serif 4', serif;
+    font-size: 12px;
+    letter-spacing: 0.32em;
+    color: var(--ink-soft);
+    text-transform: uppercase;
+    font-weight: 500;
+    font-style: italic;
+    white-space: nowrap;
+    flex: 0 0 auto;
+  }
+  .header-row {
+    display: flex;
+    align-items: stretch;
+    flex: 1 1 auto;
+    min-height: 0;
   }
 
   .date-block {
@@ -144,26 +171,6 @@
     flex-direction: column;
     justify-content: center;
     gap: 2px;
-  }
-  .date-line1 {
-    font-size: 12px;
-    letter-spacing: 0.32em;
-    color: var(--ink-soft);
-    text-transform: uppercase;
-    font-weight: 500;
-    font-family: 'Source Serif 4', serif;
-    font-style: italic;
-    /* Flex row so the marquee can take whatever inline space is left
-       without pushing siblings or wrapping the header. Height is pinned
-       so a taller marquee child can't push date-line2/clock around. */
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    min-width: 0;
-    white-space: nowrap;
-    overflow: hidden;
-    height: 22px;
-    line-height: 22px;
   }
   .net-dot {
     display: inline-block;
@@ -1317,14 +1324,16 @@
     /* — Header — */
     .header {
       height: calc(86px + env(safe-area-inset-top));
-      padding: calc(10px + env(safe-area-inset-top)) calc(14px + env(safe-area-inset-right)) 0 calc(14px + env(safe-area-inset-left));
+      padding: calc(6px + env(safe-area-inset-top)) calc(14px + env(safe-area-inset-right)) 0 calc(14px + env(safe-area-inset-left));
+      gap: 4px;
     }
+    .header-strip { height: 18px; gap: 8px; }
+    .header-brand { font-size: 10px; letter-spacing: 0.24em; }
     .hairline {
       top: calc(86px + env(safe-area-inset-top));
       left: calc(14px + env(safe-area-inset-left));
       right: calc(14px + env(safe-area-inset-right));
     }
-    .date-line1 { font-size: 10px; letter-spacing: 0.24em; height: 18px; line-height: 18px; }
     .date-num { font-size: 28px; }
     .date-weekday { font-size: 14px; }
     .date-line2 { gap: 10px; }
@@ -1814,26 +1823,28 @@ function Header({ now, netStatus, message }) {
   const dotTitle = netStatus === "offline" ? "離線" : netStatus === "stale" ? "資料來自快取" : "連線正常";
   return (
     <div className="header">
-      <div className="date-block">
-        <div className="date-line1">
-          <span className={`net-dot net-dot-${netStatus || 'online'}`} title={dotTitle} />
-          ZhgChgLi
-          {message && (
-            <span className="hdr-marquee" title={message}>
-              <span className="hdr-marquee-track">
-                <span><span className="hdr-marquee-mark">§</span>{message}</span>
-                <span><span className="hdr-marquee-mark">§</span>{message}</span>
-              </span>
+      <div className="header-strip">
+        <span className={`net-dot net-dot-${netStatus || 'online'}`} title={dotTitle} />
+        <span className="header-brand">ZhgChgLi</span>
+        {message && (
+          <span className="hdr-marquee" title={message}>
+            <span className="hdr-marquee-track">
+              <span><span className="hdr-marquee-mark">§</span>{message}</span>
+              <span><span className="hdr-marquee-mark">§</span>{message}</span>
             </span>
-          )}
-        </div>
-        <div className="date-line2">
-          <span className="date-num">{mo}<span className="slash">/</span>{d}</span>
-          <span className="date-weekday">{WEEKDAYS_ZH[wd]}</span>
-        </div>
-        <div className="date-line3">{WEEKDAYS_EN[wd]} &nbsp;·&nbsp; week {Math.ceil((((now - new Date(y,0,1)) / 86400000) + new Date(y,0,1).getDay() + 1) / 7)}</div>
+          </span>
+        )}
       </div>
-      <FlipClock now={now} />
+      <div className="header-row">
+        <div className="date-block">
+          <div className="date-line2">
+            <span className="date-num">{mo}<span className="slash">/</span>{d}</span>
+            <span className="date-weekday">{WEEKDAYS_ZH[wd]}</span>
+          </div>
+          <div className="date-line3">{WEEKDAYS_EN[wd]} &nbsp;·&nbsp; week {Math.ceil((((now - new Date(y,0,1)) / 86400000) + new Date(y,0,1).getDay() + 1) / 7)}</div>
+        </div>
+        <FlipClock now={now} />
+      </div>
     </div>
   );
 }
