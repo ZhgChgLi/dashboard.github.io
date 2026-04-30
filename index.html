@@ -2354,7 +2354,10 @@ function MessagePanel({ data, message, setMessage }) {
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState(null); // { msg, err }
-  const MAX = 500;
+  const MAX = 200;
+  // Newlines render as spaces in the marquee anyway and waste characters,
+  // so collapse \r\n|\r|\n into a single space at submit and on input.
+  const normalize = (s) => s.replace(/[\r\n]+/g, " ").slice(0, MAX);
 
   const callApi = async (params) => {
     setBusy(true);
@@ -2378,10 +2381,10 @@ function MessagePanel({ data, message, setMessage }) {
   };
 
   const onSubmit = async () => {
-    const v = draft.trim();
+    const v = normalize(draft.trim());
     if (!v) return;
     try {
-      await callApi({ action: "setMessage", value: v.slice(0, MAX) });
+      await callApi({ action: "setMessage", value: v });
       setDraft("");
       setStatus({ msg: "已送出", err: false });
     } catch (e) {}
@@ -2410,9 +2413,9 @@ function MessagePanel({ data, message, setMessage }) {
         <textarea
           className="msg-textarea"
           maxLength={MAX}
-          placeholder="輸入想說的話，送出後同步到所有裝置…"
+          placeholder="輸入想說的話，送出後同步到所有裝置…（最多 200 字、換行會自動轉空白）"
           value={draft}
-          onChange={(e) => setDraft(e.target.value)}
+          onChange={(e) => setDraft(normalize(e.target.value))}
           disabled={busy}
         />
         <div className="msg-actions">
