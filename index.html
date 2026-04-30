@@ -144,6 +144,14 @@
     font-weight: 500;
     font-family: 'Source Serif 4', serif;
     font-style: italic;
+    /* Flex row so the marquee can take whatever inline space is left
+       without pushing siblings or wrapping the header. */
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
   }
   .net-dot {
     display: inline-block;
@@ -1458,8 +1466,11 @@
   .hdr-marquee {
     display: inline-flex;
     align-items: baseline;
-    margin-left: 14px;
-    max-width: min(58vw, 720px);
+    /* Take whatever inline space is left in date-line1; min-width:0
+       lets it shrink so it never pushes the FlipClock off-screen. */
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: 100%;
     overflow: hidden;
     vertical-align: 1px;
     -webkit-mask-image: linear-gradient(to right, transparent 0, #000 24px, #000 calc(100% - 24px), transparent 100%);
@@ -1489,7 +1500,6 @@
     to   { transform: translateX(-50%); }
   }
   @media (max-width: 720px) {
-    .hdr-marquee { max-width: 50vw; margin-left: 8px; }
     .hdr-marquee-track { font-size: 10px; letter-spacing: 0.14em; }
     .hdr-marquee-track > span { padding-right: 40px; }
   }
