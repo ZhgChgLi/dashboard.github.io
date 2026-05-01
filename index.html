@@ -2480,7 +2480,9 @@ function MessagePanel({ data, message, setMessage }) {
 // =================================================================
 const TABS = [
   { id: 'stocks',  label: '持　股',     en: 'STOCKS',     Comp: StocksPanel,
-    isEmpty: d => !d?.stocks?.holdings?.length },
+    // Skip auto-cycle between 07:00–21:00 local time (markets open / busy hours);
+    // outside that window the cycler will land on stocks normally.
+    isEmpty: () => { const h = new Date().getHours(); return h >= 7 && h < 21; } },
   { id: 'ga',      label: '流　量',     en: 'TRAFFIC',    Comp: GAPanel,
     // GA tab keeps rendering even with no realtime traffic (cumulative numbers
     // matter), so don't auto-skip.
