@@ -1737,10 +1737,11 @@ const { useState, useEffect, useRef, useMemo } = React;
 // timestamp. `lastFetchedAt` (Date|null) is prepended so the user can
 // see when the JSON was last successfully pulled. Fed by the parent
 // <App>'s `now` clock so it ticks every second.
-function refreshCountdown(refreshAt, now, lastFetchedAt) {
+function refreshCountdown(refreshAt, now, lastFetchedAt, fetching) {
   const prefix = lastFetchedAt
     ? `${pad2(lastFetchedAt.getHours())}:${pad2(lastFetchedAt.getMinutes())}:${pad2(lastFetchedAt.getSeconds())} · `
     : "";
+  if (fetching) return prefix + "更新中…";
   if (!refreshAt) return prefix || null;
   const ms = refreshAt - now.getTime();
   if (ms <= 0) return prefix + "更新中…";
@@ -1871,14 +1872,14 @@ function Header({ now, netStatus, message }) {
 // =================================================================
 // TAB 1 — STOCKS
 // =================================================================
-function StocksPanel({ data, now, lastFetchedAt }) {
+function StocksPanel({ data, now, lastFetchedAt, fetching }) {
   const STOCK_DATA = data?.stocks?.holdings || [];
   const totalValue = STOCK_DATA.reduce((s, x) => s + x.qty * x.price, 0);
   const totalCost = STOCK_DATA.reduce((s, x) => s + x.qty * (x.cost ?? 0), 0);
   const totalChg = STOCK_DATA.reduce((s, x) => s + x.qty * x.price * (x.chg / 100), 0);
   const totalChgPct = (totalChg / (totalValue - totalChg)) * 100;
   const isUp = totalChg >= 0;
-  const refreshLabel = refreshCountdown(data?.stocks?.refreshAt, now, lastFetchedAt) || "Portfolio · TWSE";
+  const refreshLabel = refreshCountdown(data?.stocks?.refreshAt, now, lastFetchedAt, fetching) || "Portfolio · TWSE";
 
   return (
     <div className="tab-panel-inner">
@@ -1956,7 +1957,7 @@ function DeltaBadge({ value, prev, format }) {
   return <span className={`ga-delta ${cls}`}>{sign}{fmt(Math.abs(diff))}</span>;
 }
 
-function GAPanel({ data, now, lastFetchedAt }) {
+function GAPanel({ data, now, lastFetchedAt, fetching }) {
   const GA_LIVE = data?.ga?.live || {};
   const GA_CUM  = data?.ga?.cum  || {};
   const GA_TOP_PATHS = GA_LIVE.topPaths || [];
@@ -1976,7 +1977,7 @@ function GAPanel({ data, now, lastFetchedAt }) {
       <div className="panel-head">
         <span className="panel-title">流　量</span>
         <span className="panel-title-en">
-          {refreshCountdown(GA_LIVE.refreshAt, now, lastFetchedAt) || "Web Analytics · GA4"}
+          {refreshCountdown(GA_LIVE.refreshAt, now, lastFetchedAt, fetching) || "Web Analytics · GA4"}
         </span>
       </div>
       <div className="ga-split">
@@ -2312,14 +2313,14 @@ function pathOf(url) {
   }
 }
 
-function NotFoundPanel({ data, now, lastFetchedAt }) {
+function NotFoundPanel({ data, now, lastFetchedAt, fetching }) {
   const rows = data?.notFound?.rows || [];
   // Top 10 most-visited page titles in the last 24 h, by unique users.
   const topPages = (data?.notFound?.topPages || [])
     .slice()
     .sort((a, b) => (b.users || 0) - (a.users || 0))
     .slice(0, 10);
-  const refreshLabel = refreshCountdown(data?.notFound?.refreshAt, now, lastFetchedAt) || "reference · last 24 h";
+  const refreshLabel = refreshCountdown(data?.notFound?.refreshAt, now, lastFetchedAt, fetching) || "reference · last 24 h";
   const showRows = rows.length > 0;
   return (
     <div className="tab-panel-inner">
@@ -2585,6 +2586,7 @@ function App() {
   const [authFailed, setAuthFailed] = useState(false);
   const [data, setData] = useState(window.DATA || {});
   const [lastFetchedAt, setLastFetchedAt] = useState(null);
+  const [fetching, setFetching] = useState(false);
   const [message, setMessage] = useState(() => {
     try { return (JSON.parse(localStorage.getItem("DASHBOARD_DATA") || "{}").message) || ""; }
     catch (e) { return ""; }
@@ -2686,6 +2688,7 @@ function App() {
     const url = GAS_URL + "?key=" + encodeURIComponent(key);
 
     const fetchData = async (bust) => {
+      setFetching(true);
       try {
         // iOS PWA standalone freezes JS while backgrounded. On resume we
         // want a *fresh* network round-trip — append a unique `_t=` so the
@@ -2712,6 +2715,8 @@ function App() {
       } catch (e) {
         console.error("[fetch]", e);
         setNetError({ msg: String(e?.message || e || "network error") });
+      } finally {
+        setFetching(false);
       }
     };
     let lastFetchAt = 0;
@@ -2833,7 +2838,7 @@ function App() {
       <div className="content">
         {TABS.map((T, i) => (
           <div className={`tab-panel ${i === activeIdx ? 'active' : ''}`} key={T.id}>
-            <T.Comp now={now} data={data} lastFetchedAt={lastFetchedAt} message={message} setMessage={setMessage} />
+            <T.Comp now={now} data={data} lastFetchedAt={lastFetchedAt} fetching={fetching} message={message} setMessage={setMessage} />
           </div>
         ))}
       </div>
