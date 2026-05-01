@@ -2685,9 +2685,14 @@ function App() {
     const key = localStorage.getItem("DASHBOARD_KEY");
     const url = GAS_URL + "?key=" + encodeURIComponent(key);
 
-    const fetchData = async () => {
+    const fetchData = async (bust) => {
       try {
-        const res = await fetch(url, { redirect: "follow" });
+        // iOS PWA standalone freezes JS while backgrounded. On resume we
+        // want a *fresh* network round-trip — append a unique `_t=` so the
+        // SW cache key doesn't match a stale entry, and use cache:reload
+        // so any HTTP cache layer is bypassed too.
+        const u = bust ? `${url}&_t=${Date.now()}` : url;
+        const res = await fetch(u, { redirect: "follow", cache: bust ? "reload" : "default" });
         if (!res.ok) {
           console.error("[fetch]", res.status);
           setNetError({ msg: `HTTP ${res.status}` });
@@ -2710,24 +2715,43 @@ function App() {
       }
     };
     let lastFetchAt = 0;
-    const tryFetch = () => {
+    let hiddenSince = null;
+    const tryFetch = (opts) => {
+      const force = !!opts?.force;
+      const bust  = !!opts?.bust;
       const t = Date.now();
-      if (t - lastFetchAt < 3000) return;
+      if (!force && t - lastFetchAt < 3000) return;
       lastFetchAt = t;
-      fetchData();
+      fetchData(bust);
     };
     tryFetch();
-    const id = setInterval(tryFetch, POLL_INTERVAL_MS);
+    const id = setInterval(() => tryFetch(), POLL_INTERVAL_MS);
 
     // iOS/Android suspend timers when the tab is hidden. Refetch on resume
     // so coming back to the dashboard always pulls fresh data — no page or
-    // SW reload, just the JSON.
+    // SW reload, just the JSON. iOS PWA in particular needs cache busting
+    // (`bust: true`) to skip any stale SW response left from before the
+    // freeze.
     const onVisibility = () => {
-      if (document.visibilityState === "visible") tryFetch();
+      if (document.visibilityState === "visible") {
+        const wasHidden = hiddenSince != null;
+        hiddenSince = null;
+        tryFetch({ force: wasHidden, bust: wasHidden });
+      } else {
+        hiddenSince = Date.now();
+      }
     };
+    const onPageShow = (e) => {
+      // BFCache restore — JS was frozen while we were away. Force fresh.
+      if (e?.persisted) tryFetch({ force: true, bust: true });
+    };
+    const onFocus = () => tryFetch();
+    const onResume = () => tryFetch({ force: true, bust: true });
     document.addEventListener("visibilitychange", onVisibility);
-    window.addEventListener("pageshow", onVisibility);
-    window.addEventListener("focus", onVisibility);
+    window.addEventListener("pageshow", onPageShow);
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("resume", onResume);    // Page Lifecycle API
+    document.addEventListener("freeze", () => { hiddenSince = Date.now(); });
 
     // SW tells us when it served a stale (cached) response because the
     // network failed — show a chip so the user knows the data is from cache.
@@ -2741,8 +2765,9 @@ function App() {
     return () => {
       clearInterval(id);
       document.removeEventListener("visibilitychange", onVisibility);
-      window.removeEventListener("pageshow", onVisibility);
-      window.removeEventListener("focus", onVisibility);
+      window.removeEventListener("pageshow", onPageShow);
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("resume", onResume);
       navigator.serviceWorker?.removeEventListener("message", onSwMsg);
     };
   }, []);
