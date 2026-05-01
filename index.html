@@ -633,6 +633,25 @@
     margin-right: 2px;
     font-style: italic;
   }
+  /* Tiny ± badge attached to a stat — used by Traffic for "diff vs
+     previous cycle / last week same day". */
+  .ga-delta {
+    display: inline-block;
+    margin-left: 6px;
+    padding: 1px 6px 0;
+    font-family: 'Source Serif 4', serif;
+    font-style: italic;
+    font-size: 9px;
+    letter-spacing: 0.08em;
+    border: 1px solid currentColor;
+    vertical-align: 4px;
+    font-weight: 500;
+    font-feature-settings: 'lnum', 'tnum';
+    line-height: 1.4;
+  }
+  .ga-delta.up   { color: var(--up); }
+  .ga-delta.down { color: var(--down); }
+  .ga-delta.flat { color: var(--ink-faint); }
 
   /* === Weather === */
   .weather-split {
@@ -1925,6 +1944,18 @@ function StocksPanel({ data, now, lastFetchedAt }) {
 // =================================================================
 // TAB 2 — GA
 // =================================================================
+// Tiny badge: shows ± delta relative to a baseline value. `format` lets
+// callers control number formatting (e.g. money). Always shows a sign,
+// renders `±0` in the flat case so the slot doesn't collapse.
+function DeltaBadge({ value, prev, format }) {
+  if (prev == null || value == null) return null;
+  const diff = value - prev;
+  const fmt = format || ((n) => Math.round(n).toLocaleString());
+  const cls = diff > 0 ? 'up' : diff < 0 ? 'down' : 'flat';
+  const sign = diff > 0 ? '+' : diff < 0 ? '−' : '±';
+  return <span className={`ga-delta ${cls}`}>{sign}{fmt(Math.abs(diff))}</span>;
+}
+
 function GAPanel({ data, now, lastFetchedAt }) {
   const GA_LIVE = data?.ga?.live || {};
   const GA_CUM  = data?.ga?.cum  || {};
@@ -1935,6 +1966,26 @@ function GAPanel({ data, now, lastFetchedAt }) {
   const GA_AD_REVENUE   = GA_CUM.adRevenue    ?? 0;
   const GA_AD_CLICKS    = GA_CUM.adClicks     ?? 0;
   const GA_AD_VIEWS     = GA_CUM.adViews      ?? 0;
+  const GA_AD_REVENUE_PREV = GA_CUM.adRevenuePrev ?? null;
+  const GA_AD_CLICKS_PREV  = GA_CUM.adClicksPrev  ?? null;
+  const GA_AD_VIEWS_PREV   = GA_CUM.adViewsPrev   ?? null;
+
+  // Active users: track the previous value seen so we can show the
+  // delta vs the previous polling cycle. Updates only when the number
+  // actually shifts (cache hits keep prev unchanged).
+  const prevActiveRef = useRef(null);
+  const [prevActive, setPrevActive] = useState(null);
+  useEffect(() => {
+    if (GA_LIVE.activeUsers == null) return;
+    if (prevActiveRef.current == null) {
+      prevActiveRef.current = GA_LIVE.activeUsers;
+      return;
+    }
+    if (GA_LIVE.activeUsers !== prevActiveRef.current) {
+      setPrevActive(prevActiveRef.current);
+      prevActiveRef.current = GA_LIVE.activeUsers;
+    }
+  }, [GA_LIVE.activeUsers]);
   return (
     <div className="tab-panel-inner">
       <div className="panel-head">
@@ -1954,7 +2005,11 @@ function GAPanel({ data, now, lastFetchedAt }) {
             <div className="ga-stat-pair">
               <span className="ga-stat-en">active users</span>
               <span className="ga-stat-zh">活躍使用者</span>
-              <span className="ga-stat-num"><span className="ga-pulse-dot"></span>{GA_ACTIVE_USERS.toLocaleString()}</span>
+              <span className="ga-stat-num">
+                <span className="ga-pulse-dot"></span>
+                {GA_ACTIVE_USERS.toLocaleString()}
+                <DeltaBadge value={GA_ACTIVE_USERS} prev={prevActive} />
+              </span>
             </div>
             <div className="ga-stat-pair">
               <span className="ga-stat-en">page views</span>
@@ -1994,6 +2049,9 @@ function GAPanel({ data, now, lastFetchedAt }) {
               <span className="ga-cum-num">
                 <span className="currency">US$</span>
                 {GA_AD_REVENUE.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                <DeltaBadge
+                  value={GA_AD_REVENUE} prev={GA_AD_REVENUE_PREV}
+                  format={(n) => n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} />
               </span>
             </div>
             <div className="ga-cum-row">
@@ -2001,14 +2059,20 @@ function GAPanel({ data, now, lastFetchedAt }) {
                 <span className="ga-cum-zh">廣告點擊</span>
                 <span className="ga-cum-en">ad clicks · today</span>
               </div>
-              <span className="ga-cum-num">{GA_AD_CLICKS.toLocaleString()}</span>
+              <span className="ga-cum-num">
+                {GA_AD_CLICKS.toLocaleString()}
+                <DeltaBadge value={GA_AD_CLICKS} prev={GA_AD_CLICKS_PREV} />
+              </span>
             </div>
             <div className="ga-cum-row">
               <div className="ga-cum-left">
                 <span className="ga-cum-zh">廣告瀏覽</span>
                 <span className="ga-cum-en">ad views · today</span>
               </div>
-              <span className="ga-cum-num">{GA_AD_VIEWS.toLocaleString()}</span>
+              <span className="ga-cum-num">
+                {GA_AD_VIEWS.toLocaleString()}
+                <DeltaBadge value={GA_AD_VIEWS} prev={GA_AD_VIEWS_PREV} />
+              </span>
             </div>
           </div>
         </div>
