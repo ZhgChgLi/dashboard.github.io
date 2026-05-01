@@ -1392,20 +1392,18 @@
     .progress-num { font-size: 10px; order: 2; }
     .progress { width: 60px; order: 3; }
 
-    /* — Stocks: keep name · cost · price · earn (hide qty / chg %) — */
+    /* — Stocks: keep all six columns visible, tighter cells — */
     .stocks-summary { gap: 16px; margin-bottom: 10px; flex-wrap: wrap; row-gap: 8px; }
     .summary-value { font-size: 22px; }
     .summary-label { font-size: 9px; letter-spacing: 0.24em; }
     .stocks-row {
-      grid-template-columns: minmax(0, 1fr) 60px 60px 70px;
-      font-size: 13px;
-      gap: 5px;
-      padding: 6px 0;
+      /* name · qty · cost · price · 總漲跌 · 當日收益 */
+      grid-template-columns: minmax(0, 1fr) 40px 50px 50px 56px 64px;
+      font-size: 11px;
+      gap: 4px;
+      padding: 5px 0;
     }
-    .stocks-row.head { font-size: 9px; letter-spacing: 0.22em; }
-    /* hide qty (col 2) and chg % (col 5) */
-    .stocks-row > :nth-child(2),
-    .stocks-row > :nth-child(5) { display: none; }
+    .stocks-row.head { font-size: 9px; letter-spacing: 0.18em; }
 
     /* — GA: stack realtime + cumulative — */
     .ga-split { grid-template-columns: 1fr; gap: 14px; height: auto; }
@@ -1483,7 +1481,7 @@
   @media (max-width: 380px) {
     .date-num { font-size: 24px; }
     .flip-card.sec, .clock-colon.sec { display: none; }
-    .stocks-row { grid-template-columns: minmax(0, 1fr) 52px 56px 64px; font-size: 12px; }
+    .stocks-row { grid-template-columns: minmax(0, 1fr) 32px 42px 44px 48px 56px; font-size: 10px; gap: 3px; }
     .weather-temp { font-size: 48px; }
     .nf-row-ref, .nf-head-ref { grid-template-columns: minmax(0, 1fr) 56px 44px; }
   }
