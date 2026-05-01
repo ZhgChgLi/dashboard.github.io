@@ -2361,13 +2361,13 @@ function NotFoundPanel({ data, now, lastFetchedAt }) {
       ) : (
         <>
           <div className="nf-head">
-            <span>title</span>
+            <span>path</span>
             <span style={{textAlign:'right'}}>users</span>
           </div>
           {topPages.slice(0, showRows ? 6 : 10).map((r, i) => (
             <div className="nf-row" key={i}>
-              <span className="nf-path" title={r.title}>
-                <bdo>{stripSiteSuffix(r.title) || '(無標題)'}</bdo>
+              <span className="nf-path" title={r.path || '/'}>
+                <bdo>{decodePath(r.path || '/')}</bdo>
               </span>
               <span className="nf-views">{(r.users || 0).toLocaleString()}</span>
             </div>
