@@ -2312,32 +2312,13 @@ function pathOf(url) {
   }
 }
 
-// GA4 first-user sources we want pushed to the bottom of the list —
-// the user already knows search/direct dominates and wants the
-// long-tail referrers to stand out at the top.
-const SOURCE_DEPRIORITIZE = new Set([
-  "google", "(direct)", "tw.search.yahoo.com", "hk.search.yahoo.com",
-  "bing", "chatgpt.com", "perplexity.ai"
-]);
-function isDeprioritizedSource(s) {
-  const k = (s || "(direct)").toLowerCase();
-  return SOURCE_DEPRIORITIZE.has(k);
-}
-
 function NotFoundPanel({ data, now, lastFetchedAt }) {
   const rows = data?.notFound?.rows || [];
-  // GA4 first-user attribution: source / medium / newUsers — direct
-  // and organic show up here, unlike raw `pageReferrer`.
-  // Common search engines / direct / AI assistants are pushed to the
-  // bottom; within each group sort by newUsers desc.
-  const sources = (data?.notFound?.sources || [])
+  // Top 10 most-visited page titles in the last 24 h, by unique users.
+  const topPages = (data?.notFound?.topPages || [])
     .slice()
-    .sort((a, b) => {
-      const da = isDeprioritizedSource(a.source);
-      const db = isDeprioritizedSource(b.source);
-      if (da !== db) return da ? 1 : -1;
-      return (b.newUsers || 0) - (a.newUsers || 0);
-    });
+    .sort((a, b) => (b.users || 0) - (a.users || 0))
+    .slice(0, 10);
   const refreshLabel = refreshCountdown(data?.notFound?.refreshAt, now, lastFetchedAt) || "reference · last 24 h";
   const showRows = rows.length > 0;
   return (
@@ -2369,28 +2350,26 @@ function NotFoundPanel({ data, now, lastFetchedAt }) {
       )}
 
       <div className={`nf-section-title ${showRows ? 'nf-section-title-spaced' : ''}`}>
-        <span className="nf-section-zh">新使用者來源</span>
-        <span className="nf-section-en">source · medium · last 24 h</span>
+        <span className="nf-section-zh">熱門網頁</span>
+        <span className="nf-section-en">top pages · last 24 h</span>
       </div>
-      {sources.length === 0 ? (
+      {topPages.length === 0 ? (
         <div className="nf-empty nf-empty-compact">
           <div className="nf-empty-zh">暫無資料</div>
           <div className="nf-empty-en">no data</div>
         </div>
       ) : (
         <>
-          <div className="nf-head nf-head-ref">
-            <span>source</span>
-            <span>medium</span>
-            <span style={{textAlign:'right'}}>new users</span>
+          <div className="nf-head">
+            <span>title</span>
+            <span style={{textAlign:'right'}}>users</span>
           </div>
-          {sources.slice(0, showRows ? 6 : 12).map((r, i) => (
-            <div className="nf-row nf-row-ref" key={i}>
-              <span className="nf-ref-host" title={`${r.source} / ${r.medium}`}>{r.source || '(direct)'}</span>
-              <span className="nf-path" title={`${r.source} / ${r.medium}`}>
-                <bdo>{r.medium || '(none)'}</bdo>
+          {topPages.slice(0, showRows ? 6 : 10).map((r, i) => (
+            <div className="nf-row" key={i}>
+              <span className="nf-path" title={r.title}>
+                <bdo>{stripSiteSuffix(r.title) || '(無標題)'}</bdo>
               </span>
-              <span className="nf-views">{(r.newUsers || 0).toLocaleString()}</span>
+              <span className="nf-views">{(r.users || 0).toLocaleString()}</span>
             </div>
           ))}
         </>
@@ -2509,7 +2488,7 @@ const TABS = [
     // matter), so don't auto-skip.
     isEmpty: () => false },
   { id: '404',     label: '參　考',     en: 'REFERENCE',  Comp: NotFoundPanel,
-    isEmpty: d => !d?.notFound?.rows?.length && !d?.notFound?.sources?.length },
+    isEmpty: d => !d?.notFound?.rows?.length && !d?.notFound?.topPages?.length },
   { id: 'weather', label: '天　氣',     en: 'WEATHER',    Comp: WeatherPanel,
     isEmpty: d => !d?.weather?.cities?.length },
   { id: 'cal',     label: '行事曆',     en: 'CALENDAR',   Comp: CalendarPanel,
