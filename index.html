@@ -2564,21 +2564,47 @@ function App() {
   const [disabledTabs, setDisabledTabs] = useState(loadDisabledTabs);
   const [paused, setPaused] = useState(false);
 
-  // Long-press anywhere on a non-interactive surface pauses the
-  // auto-cycle until the pointer is released. 250 ms threshold so a
-  // quick tap on the background is still a no-op.
+  // Long-press on a non-interactive surface pauses the auto-cycle until
+  // the pointer is released (250 ms threshold). Two quick taps in the
+  // same area instead jumps to the next eligible tab.
   useEffect(() => {
     let timer = null;
+    let lastTapAt = 0;
+    let wasLongPress = false;
+    const DOUBLE_MS = 350;
     const isInteractive = (el) => !!el?.closest?.(
       "button, input, textarea, a, .tab-label, .tab-check, .msg-btn, #refresh-btn, .net-dot"
     );
+    const advanceToNext = () => {
+      setActiveIdx(i => {
+        for (let n = 1; n <= TABS.length; n++) {
+          const next = (i + n) % TABS.length;
+          const T = TABS[next];
+          if (!T.noCycle && !disabledRef.current.has(T.id) && !T.isEmpty?.(dataRef.current)) return next;
+        }
+        return i;
+      });
+    };
     const down = (e) => {
       if (isInteractive(e.target)) return;
-      timer = setTimeout(() => setPaused(true), 250);
+      const now = Date.now();
+      if (timer) { clearTimeout(timer); timer = null; }
+      if (now - lastTapAt < DOUBLE_MS && !wasLongPress) {
+        // Second tap close to the first → advance to next tab and skip
+        // the long-press timer entirely.
+        lastTapAt = 0;
+        advanceToNext();
+        return;
+      }
+      lastTapAt = now;
+      wasLongPress = false;
+      timer = setTimeout(() => {
+        wasLongPress = true;
+        setPaused(true);
+      }, 250);
     };
     const up = () => {
-      if (timer) clearTimeout(timer);
-      timer = null;
+      if (timer) { clearTimeout(timer); timer = null; }
       setPaused(false);
     };
     document.addEventListener("pointerdown", down);
