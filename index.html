@@ -1962,30 +1962,15 @@ function GAPanel({ data, now, lastFetchedAt }) {
   const GA_TOP_PATHS = GA_LIVE.topPaths || [];
   const GA_ACTIVE_USERS = GA_LIVE.activeUsers ?? 0;
   const GA_PAGE_VIEWS   = GA_LIVE.pageViews   ?? 0;
-  const GA_USERS_30D    = GA_LIVE.users30d    ?? 0;
+  const GA_USERS_30D     = GA_LIVE.users30d     ?? 0;
+  // Prior 30→60 days for the "vs previous 30-day window" badge.
+  const GA_USERS_30D_PREV = GA_LIVE.users30dPrev ?? null;
   const GA_AD_REVENUE   = GA_CUM.adRevenue    ?? 0;
   const GA_AD_CLICKS    = GA_CUM.adClicks     ?? 0;
   const GA_AD_VIEWS     = GA_CUM.adViews      ?? 0;
   const GA_AD_REVENUE_PREV = GA_CUM.adRevenuePrev ?? null;
   const GA_AD_CLICKS_PREV  = GA_CUM.adClicksPrev  ?? null;
   const GA_AD_VIEWS_PREV   = GA_CUM.adViewsPrev   ?? null;
-
-  // Active users: track the previous value seen so we can show the
-  // delta vs the previous polling cycle. Updates only when the number
-  // actually shifts (cache hits keep prev unchanged).
-  const prevActiveRef = useRef(null);
-  const [prevActive, setPrevActive] = useState(null);
-  useEffect(() => {
-    if (GA_LIVE.activeUsers == null) return;
-    if (prevActiveRef.current == null) {
-      prevActiveRef.current = GA_LIVE.activeUsers;
-      return;
-    }
-    if (GA_LIVE.activeUsers !== prevActiveRef.current) {
-      setPrevActive(prevActiveRef.current);
-      prevActiveRef.current = GA_LIVE.activeUsers;
-    }
-  }, [GA_LIVE.activeUsers]);
   return (
     <div className="tab-panel-inner">
       <div className="panel-head">
@@ -2008,7 +1993,6 @@ function GAPanel({ data, now, lastFetchedAt }) {
               <span className="ga-stat-num">
                 <span className="ga-pulse-dot"></span>
                 {GA_ACTIVE_USERS.toLocaleString()}
-                <DeltaBadge value={GA_ACTIVE_USERS} prev={prevActive} />
               </span>
             </div>
             <div className="ga-stat-pair">
@@ -2019,7 +2003,10 @@ function GAPanel({ data, now, lastFetchedAt }) {
             <div className="ga-stat-pair">
               <span className="ga-stat-en">past 30 days</span>
               <span className="ga-stat-zh">活躍使用者</span>
-              <span className="ga-stat-num">{GA_USERS_30D.toLocaleString()}</span>
+              <span className="ga-stat-num">
+                {GA_USERS_30D.toLocaleString()}
+                <DeltaBadge value={GA_USERS_30D} prev={GA_USERS_30D_PREV} />
+              </span>
             </div>
           </div>
           <div className="ga-paths-head">
