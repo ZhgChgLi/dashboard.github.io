@@ -130,7 +130,7 @@
   .header {
     position: absolute;
     top: 0; left: 0; right: 0;
-    height: calc(116px + env(safe-area-inset-top));
+    height: calc(104px + env(safe-area-inset-top));
     display: flex;
     flex-direction: column;
     padding: calc(10px + env(safe-area-inset-top)) calc(24px + env(safe-area-inset-right)) 0 calc(28px + env(safe-area-inset-left));
@@ -159,7 +159,7 @@
   }
   .header-row {
     display: flex;
-    align-items: stretch;
+    align-items: flex-start;
     flex: 1 1 auto;
     min-height: 0;
   }
@@ -169,7 +169,7 @@
     min-width: 0;
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: flex-start;
     gap: 2px;
   }
   .net-dot {
@@ -341,7 +341,7 @@
   /* === Hairline divider === */
   .hairline {
     position: absolute;
-    top: calc(116px + env(safe-area-inset-top));
+    top: calc(104px + env(safe-area-inset-top));
     left: calc(28px + env(safe-area-inset-left));
     right: calc(28px + env(safe-area-inset-right));
     height: 1px;
@@ -360,7 +360,7 @@
   /* === Tab content area === */
   .content {
     position: absolute;
-    top: calc(124px + env(safe-area-inset-top));
+    top: calc(112px + env(safe-area-inset-top));
     left: calc(28px + env(safe-area-inset-left));
     right: calc(28px + env(safe-area-inset-right));
     bottom: calc(38px + env(safe-area-inset-bottom));
@@ -380,6 +380,45 @@
     transform: translateY(0);
     pointer-events: auto;
   }
+  .tab-panel-inner {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+  }
+  /* Scrollable list region inside a tab-panel-inner. The element shrinks to
+     fit remaining vertical space and scrolls its overflow. Scrollbar styled
+     thin to match the paper aesthetic. */
+  .scroll-y {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: var(--ink-faint) transparent;
+  }
+  .scroll-y::-webkit-scrollbar { width: 4px; }
+  .scroll-y::-webkit-scrollbar-thumb { background: var(--ink-faint); border-radius: 2px; }
+  .scroll-y::-webkit-scrollbar-track { background: transparent; }
+  /* For panels that split into two stacked sections, each section caps at
+     50% of the available height and scrolls independently. */
+  .scroll-half {
+    flex: 1 1 50%;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .scroll-half-rows {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: var(--ink-faint) transparent;
+  }
+  .scroll-half-rows::-webkit-scrollbar { width: 4px; }
+  .scroll-half-rows::-webkit-scrollbar-thumb { background: var(--ink-faint); border-radius: 2px; }
+  .scroll-half-rows::-webkit-scrollbar-track { background: transparent; }
 
   .panel-head {
     display: flex;
@@ -1916,15 +1955,15 @@ function StocksPanel({ data, now, lastFetchedAt, fetching, market }) {
           </span>
         </div>
       </div>
-      <div className="stocks-table">
-        <div className="stocks-row head">
-          <span>name</span>
-          <span style={{textAlign:'right'}}>持股</span>
-          <span style={{textAlign:'right'}}>成本</span>
-          <span style={{textAlign:'right'}}>股價</span>
-          <span style={{textAlign:'right'}}>總漲跌</span>
-          <span style={{textAlign:'right'}}>未實現損益</span>
-        </div>
+      <div className="stocks-row head">
+        <span>name</span>
+        <span style={{textAlign:'right'}}>持股</span>
+        <span style={{textAlign:'right'}}>成本</span>
+        <span style={{textAlign:'right'}}>股價</span>
+        <span style={{textAlign:'right'}}>總漲跌</span>
+        <span style={{textAlign:'right'}}>未實現損益</span>
+      </div>
+      <div className="stocks-table scroll-y">
         {STOCK_DATA.map(s => {
           const cost = s.cost ?? 0;
           const earn = (s.price - cost) * s.qty;
@@ -2024,12 +2063,14 @@ function GAPanel({ data, now, lastFetchedAt, fetching }) {
             <span>top pages · 網頁路徑與畫面類別</span>
             <span>views</span>
           </div>
-          {GA_TOP_PATHS.map((row, i) => (
-            <div className="ga-path-row" key={i}>
-              <span className="ga-path-name">{stripSiteSuffix(row.p)}</span>
-              <span className="ga-path-views">{row.v}</span>
-            </div>
-          ))}
+          <div className="scroll-y">
+            {GA_TOP_PATHS.map((row, i) => (
+              <div className="ga-path-row" key={i}>
+                <span className="ga-path-name">{stripSiteSuffix(row.p)}</span>
+                <span className="ga-path-views">{row.v}</span>
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* === RIGHT · today + lifetime === */}
@@ -2229,7 +2270,7 @@ function CalendarPanel({ data, now }) {
           </div>
         </div>
       ) : null}
-      <div className="cal-list">
+      <div className="cal-list scroll-y">
         {rest.map((e, i) => (
           <div className="cal-row" key={i}>
             <span className="cal-row-time">{e.time}</span>
@@ -2272,7 +2313,7 @@ function CountdownPanel({ now, data }) {
         <span className="panel-title">倒　數　日</span>
         <span className="panel-title-en">D-Day · counting</span>
       </div>
-      <div className="cd-grid">
+      <div className="cd-grid scroll-y">
         {CD_EVENTS.map((e, i) => {
           const diff = daysBetween(e.target, now);
           const isPast = diff < 0;
@@ -2340,7 +2381,7 @@ function NotFoundPanel({ data, now, lastFetchedAt, fetching }) {
       </div>
 
       {showRows && (
-        <>
+        <div className="scroll-half">
           <div className="nf-section-title">
             <span className="nf-section-zh">遺失頁面</span>
             <span className="nf-section-en">404 paths</span>
@@ -2349,42 +2390,48 @@ function NotFoundPanel({ data, now, lastFetchedAt, fetching }) {
             <span>path</span>
             <span style={{textAlign:'right'}}>views</span>
           </div>
-          {rows.slice(0, 5).map((r, i) => (
-            <div className="nf-row" key={i}>
-              <span className="nf-path" title={r.path || '/'}>
-                <bdo>{decodePath(r.path || '/')}</bdo>
-              </span>
-              <span className="nf-views">{(r.views || 0).toLocaleString()}</span>
-            </div>
-          ))}
-        </>
+          <div className="scroll-half-rows">
+            {rows.map((r, i) => (
+              <div className="nf-row" key={i}>
+                <span className="nf-path" title={r.path || '/'}>
+                  <bdo>{decodePath(r.path || '/')}</bdo>
+                </span>
+                <span className="nf-views">{(r.views || 0).toLocaleString()}</span>
+              </div>
+            ))}
+          </div>
+        </div>
       )}
 
-      <div className={`nf-section-title ${showRows ? 'nf-section-title-spaced' : ''}`}>
-        <span className="nf-section-zh">熱門網頁</span>
-        <span className="nf-section-en">top pages · last 24 h</span>
-      </div>
-      {topPages.length === 0 ? (
-        <div className="nf-empty nf-empty-compact">
-          <div className="nf-empty-zh">暫無資料</div>
-          <div className="nf-empty-en">no data</div>
+      <div className="scroll-half">
+        <div className={`nf-section-title ${showRows ? 'nf-section-title-spaced' : ''}`}>
+          <span className="nf-section-zh">熱門網頁</span>
+          <span className="nf-section-en">top pages · last 24 h</span>
         </div>
-      ) : (
-        <>
-          <div className="nf-head">
-            <span>path</span>
-            <span style={{textAlign:'right'}}>users</span>
+        {topPages.length === 0 ? (
+          <div className="nf-empty nf-empty-compact">
+            <div className="nf-empty-zh">暫無資料</div>
+            <div className="nf-empty-en">no data</div>
           </div>
-          {topPages.slice(0, showRows ? 6 : 10).map((r, i) => (
-            <div className="nf-row" key={i}>
-              <span className="nf-path" title={r.path || '/'}>
-                <bdo>{decodePath(r.path || '/')}</bdo>
-              </span>
-              <span className="nf-views">{(r.users || 0).toLocaleString()}</span>
+        ) : (
+          <>
+            <div className="nf-head">
+              <span>path</span>
+              <span style={{textAlign:'right'}}>users</span>
             </div>
-          ))}
-        </>
-      )}
+            <div className="scroll-half-rows">
+              {topPages.map((r, i) => (
+                <div className="nf-row" key={i}>
+                  <span className="nf-path" title={r.path || '/'}>
+                    <bdo>{decodePath(r.path || '/')}</bdo>
+                  </span>
+                  <span className="nf-views">{(r.users || 0).toLocaleString()}</span>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }
@@ -2452,7 +2499,7 @@ function MessagePanel({ data, message, setMessage }) {
         {stored || "尚無留言"}
       </div>
 
-      <div className="msg-form">
+      <div className="msg-form scroll-y">
         <textarea
           className="msg-textarea"
           maxLength={MAX}
