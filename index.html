@@ -475,14 +475,59 @@
   }
   .stocks-row {
     display: grid;
-    /* name · qty · cost · price · chg · earn */
-    grid-template-columns: minmax(0, 1fr) 56px 64px 64px 56px 76px;
+    /* name · qty · 成本/股價 (range bar + meta) · chg · earn */
+    grid-template-columns: minmax(0, 1fr) 56px minmax(0, 190px) 56px 76px;
     align-items: center;
     gap: 6px;
     padding: 6px 0;
     border-bottom: 1px dashed var(--hairline);
     font-size: 13px;
   }
+  /* 成本/股價 range cell — mirrors HarryHoldings:
+   *   row 1: 最低 N ─ bar (cost tick + current dot) ─ 最高 N
+   *   row 2: 成本 N · 目前 N · ±pct
+   */
+  .pr-cell {
+    display: flex; flex-direction: column; gap: 3px;
+    min-width: 0;
+    font-family: 'Source Serif 4', serif;
+    font-feature-settings: 'lnum', 'tnum';
+  }
+  .pr-row {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 9px; color: var(--ink-faint);
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+  }
+  .pr-row .pr-num { color: var(--ink-soft); font-weight: 500; }
+  .pr-bar {
+    position: relative; flex: 1 1 auto;
+    height: 2px; background: var(--hairline); border-radius: 1px;
+    min-width: 24px;
+  }
+  .pr-dot {
+    position: absolute; top: 50%;
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--ink);
+    transform: translate(-50%, -50%);
+  }
+  .pr-cost-mark {
+    position: absolute; top: 50%;
+    width: 2px; height: 8px;
+    background: var(--ink-faint);
+    transform: translate(-50%, -50%);
+    border-radius: 1px;
+  }
+  .pr-meta {
+    display: flex; gap: 8px;
+    font-size: 10px; color: var(--ink-faint);
+    white-space: nowrap;
+  }
+  .pr-meta .pr-cost { color: var(--ink-faint); }
+  .pr-meta .pr-cur  { color: var(--ink); font-weight: 600; }
+  .pr-meta .pr-pct.up   { color: var(--up); font-weight: 600; }
+  .pr-meta .pr-pct.down { color: var(--down); font-weight: 600; }
+  .pr-empty { font-size: 10px; color: var(--ink-faint); font-style: italic; }
   .stocks-row:last-child { border-bottom: none; }
   .stocks-row.head {
     font-size: 9px;
@@ -1464,12 +1509,14 @@
     .summary-value { font-size: 22px; }
     .summary-label { font-size: 9px; letter-spacing: 0.24em; }
     .stocks-row {
-      /* name · qty · cost · price · 總漲跌 · 當日收益 */
-      grid-template-columns: minmax(0, 1fr) 40px 50px 50px 56px 64px;
+      /* name · qty · 成本/股價 · 總漲跌 · 未實現損益 */
+      grid-template-columns: minmax(0, 1fr) 40px minmax(0, 140px) 56px 64px;
       font-size: 11px;
       gap: 4px;
       padding: 5px 0;
     }
+    .pr-row { font-size: 8px; gap: 4px; }
+    .pr-meta { font-size: 9px; gap: 6px; }
     .stocks-row.head { font-size: 9px; letter-spacing: 0.18em; }
 
     /* — GA: stack realtime + cumulative — */
@@ -1548,7 +1595,10 @@
   @media (max-width: 380px) {
     .date-num { font-size: 24px; }
     .flip-card.sec, .clock-colon.sec { display: none; }
-    .stocks-row { grid-template-columns: minmax(0, 1fr) 32px 42px 44px 48px 56px; font-size: 10px; gap: 3px; }
+    .stocks-row { grid-template-columns: minmax(0, 1fr) 32px minmax(0, 116px) 48px 56px; font-size: 10px; gap: 3px; }
+    .pr-row { font-size: 7px; gap: 3px; }
+    .pr-meta { font-size: 8px; gap: 4px; }
+    .pr-bar { min-width: 16px; }
     .weather-temp { font-size: 48px; }
     .nf-row-ref, .nf-head-ref { grid-template-columns: minmax(0, 1fr) 56px 44px; }
   }
@@ -1924,10 +1974,65 @@ const STOCKS_PANEL_META = {
   US: { zh: '美　股', enFallback: 'Portfolio · US Equities', currency: 'USD', payloadKey: 'stocksUS' },
   TW: { zh: '台　股', enFallback: 'Portfolio · TWSE',        currency: 'NTD', payloadKey: 'stocksTW' },
 };
+// Renders the cost / current-price pair as a two-row HarryHoldings-style
+// price-range cell over the stock's recent close history (last 30 sessions):
+//   row 1: 最低 N ─ bar (gold cost tick + black current dot) ─ 最高 N
+//   row 2: 成本 N · 目前 N · ±pct
+// Falls back to plain "成本 N · 目前 N" when no series is available (fresh
+// listing, or upstream Web App is still on the older array shape).
+function PriceRangeCell({ series, cost, price }) {
+  const arr = Array.isArray(series) ? series : [];
+  const closes = arr.map(p => Number(p.close)).filter(n => isFinite(n));
+  const fmt = (n) => Number(n).toLocaleString(undefined, { maximumFractionDigits: 2 });
+  const hasCost = isFinite(cost) && cost > 0;
+  const pctVsCost = hasCost ? ((price - cost) / cost) * 100 : null;
+  const pctCls = pctVsCost == null ? '' : (pctVsCost > 0 ? 'up' : pctVsCost < 0 ? 'down' : '');
+  const pctTxt = pctVsCost == null ? null
+    : (pctVsCost > 0 ? '+' : '') + pctVsCost.toFixed(2) + '%';
+
+  if (!closes.length) {
+    return (
+      <div className="pr-cell">
+        <div className="pr-meta">
+          {hasCost && <span className="pr-cost">成本 {fmt(cost)}</span>}
+          <span className="pr-cur">目前 {fmt(price)}</span>
+          {pctTxt && <span className={`pr-pct ${pctCls}`}>{pctTxt}</span>}
+        </div>
+      </div>
+    );
+  }
+  // Anchor the bar to data alone — including cost would distort the range
+  // for deeply unrealized positions and crush the current-price dot.
+  const min = Math.min(...closes);
+  const max = Math.max(...closes);
+  const cur = closes[closes.length - 1];
+  const span = max - min;
+  const clamp = (v) => span > 0 ? Math.max(0, Math.min(100, ((v - min) / span) * 100)) : 50;
+  const dotLeft = clamp(cur);
+  return (
+    <div className="pr-cell">
+      <div className="pr-row">
+        <span>最低 <span className="pr-num">{fmt(min)}</span></span>
+        <div className="pr-bar">
+          {hasCost && <span className="pr-cost-mark" style={{ left: clamp(cost) + '%' }} title={`成本 ${fmt(cost)}`} />}
+          <span className="pr-dot" style={{ left: dotLeft + '%' }} />
+        </div>
+        <span>最高 <span className="pr-num">{fmt(max)}</span></span>
+      </div>
+      <div className="pr-meta">
+        {hasCost && <span className="pr-cost">成本 {fmt(cost)}</span>}
+        <span className="pr-cur">目前 {fmt(price)}</span>
+        {pctTxt && <span className={`pr-pct ${pctCls}`}>{pctTxt}</span>}
+      </div>
+    </div>
+  );
+}
+
 function StocksPanel({ data, now, lastFetchedAt, fetching, market }) {
   const meta = STOCKS_PANEL_META[market];
   const slice = data?.[meta.payloadKey] || {};
   const STOCK_DATA = slice.holdings || [];
+  const priceSeries = slice.priceSeries || {};
   const totalValue = STOCK_DATA.reduce((s, x) => s + x.qty * x.price, 0);
   const totalCost = STOCK_DATA.reduce((s, x) => s + x.qty * (x.cost ?? 0), 0);
   // Unrealized P/L derived from cost basis vs current price — independent
@@ -1965,8 +2070,7 @@ function StocksPanel({ data, now, lastFetchedAt, fetching, market }) {
       <div className="stocks-row head">
         <span>name</span>
         <span style={{textAlign:'right'}}>持股</span>
-        <span style={{textAlign:'right'}}>成本</span>
-        <span style={{textAlign:'right'}}>股價</span>
+        <span style={{textAlign:'center'}}>成本／股價</span>
         <span style={{textAlign:'right'}}>總漲跌</span>
         <span style={{textAlign:'right'}}>未實現損益</span>
       </div>
@@ -1978,12 +2082,12 @@ function StocksPanel({ data, now, lastFetchedAt, fetching, market }) {
           // Total (unrealized) gain percentage vs cost basis. Uses
           // 0 when cost is missing/zero so we don't divide by zero.
           const totalPct = cost > 0 ? ((s.price - cost) / cost) * 100 : 0;
+          const series = priceSeries[`${market}|${s.code}`] || [];
           return (
             <div className="stocks-row" key={s.code}>
               <span className="stk-name">{s.name}</span>
               <span className="stk-num">{s.qty.toLocaleString(undefined, { maximumFractionDigits: 4 })}</span>
-              <span className="stk-num">{cost.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
-              <span className="stk-num">{s.price.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+              <PriceRangeCell series={series} cost={cost} price={s.price} />
               <span className={`stk-num ${totalPct > 0 ? 'up' : totalPct < 0 ? 'down' : ''}`}>
                 {totalPct > 0 ? '+' : ''}{totalPct.toFixed(2)}%
               </span>
