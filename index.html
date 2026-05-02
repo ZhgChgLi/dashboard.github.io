@@ -1134,14 +1134,20 @@
     gap: 4px;
   }
   .tab-check {
-    font-size: 11px;
-    color: var(--ink-faint);
+    display: inline-block;
+    width: 9px;
+    height: 9px;
+    border: 1px solid var(--ink-faint);
     cursor: pointer;
     user-select: none;
-    line-height: 1;
-    padding: 2px;
+    box-sizing: border-box;
+    background: transparent;
+    transition: background 0.15s, border-color 0.15s;
+    flex-shrink: 0;
   }
-  .tab-check:hover { color: var(--stamp); }
+  .tab-check.on { background: var(--ink-soft); border-color: var(--ink-soft); }
+  .tab-check:hover { border-color: var(--stamp); }
+  .tab-check.on:hover { background: var(--stamp); border-color: var(--stamp); }
   .tab-item.tab-disabled .tab-label {
     text-decoration: line-through;
     opacity: 0.45;
@@ -1403,7 +1409,7 @@
     }
     .tabs { gap: 5px 10px; flex-wrap: wrap; flex: 1 1 100%; order: 1; }
     .tab-label { font-size: 11px; letter-spacing: 0.22em; padding: 2px 0; }
-    .tab-check { font-size: 13px; padding: 0; }
+    .tab-check { width: 10px; height: 10px; }
     .tab-item { gap: 3px; }
     .progress-num { font-size: 10px; order: 2; }
 
@@ -2856,10 +2862,10 @@ function App() {
               <span key={T.id} className={`tab-item ${enabled ? '' : 'tab-disabled'}`}>
                 {!T.noCycle && (
                   <span
-                    className="tab-check"
+                    className={`tab-check ${enabled ? 'on' : ''}`}
                     onClick={(e) => { e.stopPropagation(); toggleTabEnabled(T.id); }}
                     title={enabled ? "停用此分頁" : "啟用此分頁"}
-                  >{enabled ? '☑' : '☐'}</span>
+                  ></span>
                 )}
                 <span
                   className={`tab-label ${isActive ? 'active' : ''}`}
