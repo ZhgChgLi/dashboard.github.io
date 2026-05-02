@@ -475,8 +475,8 @@
   }
   .stocks-row {
     display: grid;
-    /* name · qty · 成本/股價 (range bar + meta) · chg · earn */
-    grid-template-columns: minmax(0, 1fr) 56px minmax(0, 190px) 56px 76px;
+    /* name · qty · 成本/股價 (range bar + meta) · earn */
+    grid-template-columns: minmax(0, 1fr) 56px minmax(0, 220px) 76px;
     align-items: center;
     gap: 6px;
     padding: 6px 0;
@@ -1509,8 +1509,8 @@
     .summary-value { font-size: 22px; }
     .summary-label { font-size: 9px; letter-spacing: 0.24em; }
     .stocks-row {
-      /* name · qty · 成本/股價 · 總漲跌 · 未實現損益 */
-      grid-template-columns: minmax(0, 1fr) 40px minmax(0, 140px) 56px 64px;
+      /* name · qty · 成本/股價 · 未實現損益 */
+      grid-template-columns: minmax(0, 1fr) 40px minmax(0, 170px) 64px;
       font-size: 11px;
       gap: 4px;
       padding: 5px 0;
@@ -1595,7 +1595,7 @@
   @media (max-width: 380px) {
     .date-num { font-size: 24px; }
     .flip-card.sec, .clock-colon.sec { display: none; }
-    .stocks-row { grid-template-columns: minmax(0, 1fr) 32px minmax(0, 116px) 48px 56px; font-size: 10px; gap: 3px; }
+    .stocks-row { grid-template-columns: minmax(0, 1fr) 32px minmax(0, 140px) 56px; font-size: 10px; gap: 3px; }
     .pr-row { font-size: 7px; gap: 3px; }
     .pr-meta { font-size: 8px; gap: 4px; }
     .pr-bar { min-width: 16px; }
@@ -2071,7 +2071,6 @@ function StocksPanel({ data, now, lastFetchedAt, fetching, market }) {
         <span>name</span>
         <span style={{textAlign:'right'}}>持股</span>
         <span style={{textAlign:'center'}}>成本／股價</span>
-        <span style={{textAlign:'right'}}>總漲跌</span>
         <span style={{textAlign:'right'}}>未實現損益</span>
       </div>
       <div className="stocks-table scroll-y">
@@ -2079,18 +2078,12 @@ function StocksPanel({ data, now, lastFetchedAt, fetching, market }) {
           const cost = s.cost ?? 0;
           const earn = (s.price - cost) * s.qty;
           const earnUp = earn > 0;
-          // Total (unrealized) gain percentage vs cost basis. Uses
-          // 0 when cost is missing/zero so we don't divide by zero.
-          const totalPct = cost > 0 ? ((s.price - cost) / cost) * 100 : 0;
           const series = priceSeries[`${market}|${s.code}`] || [];
           return (
             <div className="stocks-row" key={s.code}>
               <span className="stk-name">{s.name}</span>
               <span className="stk-num">{s.qty.toLocaleString(undefined, { maximumFractionDigits: 4 })}</span>
               <PriceRangeCell series={series} cost={cost} price={s.price} />
-              <span className={`stk-num ${totalPct > 0 ? 'up' : totalPct < 0 ? 'down' : ''}`}>
-                {totalPct > 0 ? '+' : ''}{totalPct.toFixed(2)}%
-              </span>
               <span className={`stk-num ${earn > 0 ? 'up' : earn < 0 ? 'down' : ''}`}>
                 {earnUp ? '+' : ''}{Math.round(earn).toLocaleString()}
               </span>
