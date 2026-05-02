@@ -487,6 +487,10 @@
    *   row 1: 最低 N ─ bar (cost tick + current dot) ─ 最高 N
    *   row 2: 成本 N · 目前 N · ±pct
    */
+  /* Extra breathing room between the 持股 column and the price-range
+   * cell so the bar doesn't crowd the share count. Applied at the grid
+   * column level so the header label aligns with the cell content. */
+  .stocks-row > *:nth-child(3) { padding-left: 14px; }
   .pr-cell {
     display: flex; flex-direction: column; gap: 3px;
     min-width: 0;
