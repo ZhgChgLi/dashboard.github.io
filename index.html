@@ -1870,38 +1870,46 @@ function Header({ now, netStatus, message }) {
 }
 
 // =================================================================
-// TAB 1 — STOCKS
+// TAB 1/2 — STOCKS (US / TW)
 // =================================================================
-function StocksPanel({ data, now, lastFetchedAt, fetching }) {
-  const STOCK_DATA = data?.stocks?.holdings || [];
+const STOCKS_PANEL_META = {
+  US: { zh: '美　股', enFallback: 'Portfolio · US Equities', currency: 'USD', payloadKey: 'stocksUS' },
+  TW: { zh: '台　股', enFallback: 'Portfolio · TWSE',        currency: 'NTD', payloadKey: 'stocksTW' },
+};
+function StocksPanel({ data, now, lastFetchedAt, fetching, market }) {
+  const meta = STOCKS_PANEL_META[market];
+  const slice = data?.[meta.payloadKey] || {};
+  const STOCK_DATA = slice.holdings || [];
   const totalValue = STOCK_DATA.reduce((s, x) => s + x.qty * x.price, 0);
   const totalCost = STOCK_DATA.reduce((s, x) => s + x.qty * (x.cost ?? 0), 0);
-  const totalChg = STOCK_DATA.reduce((s, x) => s + x.qty * x.price * (x.chg / 100), 0);
-  const totalChgPct = (totalChg / (totalValue - totalChg)) * 100;
-  const isUp = totalChg >= 0;
-  const refreshLabel = refreshCountdown(data?.stocks?.refreshAt, now, lastFetchedAt, fetching) || "Portfolio · TWSE";
+  // Unrealized P/L derived from cost basis vs current price — independent
+  // of whatever `chg` the upstream feed provides.
+  const totalPL = STOCK_DATA.reduce((s, x) => s + ((x.price - (x.cost ?? 0)) * x.qty), 0);
+  const totalPLPct = totalCost > 0 ? (totalPL / totalCost) * 100 : 0;
+  const isUp = totalPL >= 0;
+  const refreshLabel = refreshCountdown(slice.refreshAt, now, lastFetchedAt, fetching) || meta.enFallback;
 
   return (
     <div className="tab-panel-inner">
       <div className="panel-head">
-        <span className="panel-title">持　股</span>
+        <span className="panel-title">{meta.zh}</span>
         <span className="panel-title-en">{refreshLabel}</span>
       </div>
       <div className="stocks-summary">
         <div className="summary-block">
-          <span className="summary-label">total value · NTD</span>
-          <span className="summary-value">{totalValue.toLocaleString()}</span>
+          <span className="summary-label">total value · {meta.currency}</span>
+          <span className="summary-value">{Math.round(totalValue).toLocaleString()}</span>
         </div>
         <div className="summary-block">
-          <span className="summary-label">total cost · NTD</span>
+          <span className="summary-label">total cost · {meta.currency}</span>
           <span className="summary-value">{Math.round(totalCost).toLocaleString()}</span>
         </div>
         <div className="summary-block">
-          <span className="summary-label">today · P&amp;L</span>
+          <span className="summary-label">unrealized · P&amp;L</span>
           <span className={`summary-value ${isUp ? 'up' : 'down'}`}>
-            {isUp ? '+' : ''}{Math.round(totalChg).toLocaleString()}
+            {isUp ? '+' : ''}{Math.round(totalPL).toLocaleString()}
             <span style={{fontSize:14, marginLeft:8, fontWeight:400}}>
-              ({isUp ? '+' : ''}{totalChgPct.toFixed(2)}%)
+              ({isUp ? '+' : ''}{totalPLPct.toFixed(2)}%)
             </span>
           </span>
         </div>
@@ -1913,7 +1921,7 @@ function StocksPanel({ data, now, lastFetchedAt, fetching }) {
           <span style={{textAlign:'right'}}>成本</span>
           <span style={{textAlign:'right'}}>股價</span>
           <span style={{textAlign:'right'}}>總漲跌</span>
-          <span style={{textAlign:'right'}}>當日收益</span>
+          <span style={{textAlign:'right'}}>未實現損益</span>
         </div>
         {STOCK_DATA.map(s => {
           const cost = s.cost ?? 0;
@@ -2480,10 +2488,10 @@ function MessagePanel({ data, message, setMessage }) {
 // MAIN APP
 // =================================================================
 const TABS = [
-  { id: 'stocks',  label: '持　股',     en: 'STOCKS',     Comp: StocksPanel,
-    // Skip auto-cycle between 07:00–21:00 local time (markets open / busy hours);
-    // outside that window the cycler will land on stocks normally.
-    isEmpty: () => { const h = new Date().getHours(); return h >= 7 && h < 21; } },
+  { id: 'stocksUS', label: '美　股',    en: 'US STOCKS',  Comp: StocksPanel, props: { market: 'US' },
+    isEmpty: d => !d?.stocksUS?.holdings?.length },
+  { id: 'stocksTW', label: '台　股',    en: 'TW STOCKS',  Comp: StocksPanel, props: { market: 'TW' },
+    isEmpty: d => !d?.stocksTW?.holdings?.length },
   { id: 'ga',      label: '流　量',     en: 'TRAFFIC',    Comp: GAPanel,
     // GA tab keeps rendering even with no realtime traffic (cumulative numbers
     // matter), so don't auto-skip.
@@ -2838,7 +2846,7 @@ function App() {
       <div className="content">
         {TABS.map((T, i) => (
           <div className={`tab-panel ${i === activeIdx ? 'active' : ''}`} key={T.id}>
-            <T.Comp now={now} data={data} lastFetchedAt={lastFetchedAt} fetching={fetching} message={message} setMessage={setMessage} />
+            <T.Comp now={now} data={data} lastFetchedAt={lastFetchedAt} fetching={fetching} message={message} setMessage={setMessage} {...(T.props || {})} />
           </div>
         ))}
       </div>
