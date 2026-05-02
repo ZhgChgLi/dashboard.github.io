@@ -505,11 +505,11 @@
 
   .ga-live-stats {
     display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 12px;
+    grid-template-columns: minmax(0, 0.85fr) minmax(0, 0.85fr) minmax(0, 1.3fr);
+    gap: 10px;
     margin-bottom: 14px;
   }
-  .ga-live-stats .ga-stat-num { font-size: 30px; }
+  .ga-live-stats .ga-stat-num { font-size: 30px; white-space: nowrap; }
   .ga-stat-pair { display: flex; flex-direction: column; gap: 1px; }
   .ga-stat-en {
     font-size: 9px;
