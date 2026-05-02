@@ -476,7 +476,7 @@
   .stocks-row {
     display: grid;
     /* name · qty · 成本/股價 (range bar + meta) · earn */
-    grid-template-columns: minmax(0, 1fr) 56px minmax(0, 220px) 76px;
+    grid-template-columns: minmax(0, 110px) 56px minmax(0, 1fr) 76px;
     align-items: center;
     gap: 6px;
     padding: 6px 0;
@@ -1510,7 +1510,7 @@
     .summary-label { font-size: 9px; letter-spacing: 0.24em; }
     .stocks-row {
       /* name · qty · 成本/股價 · 未實現損益 */
-      grid-template-columns: minmax(0, 1fr) 40px minmax(0, 170px) 64px;
+      grid-template-columns: minmax(0, 88px) 40px minmax(0, 1fr) 64px;
       font-size: 11px;
       gap: 4px;
       padding: 5px 0;
@@ -1595,7 +1595,7 @@
   @media (max-width: 380px) {
     .date-num { font-size: 24px; }
     .flip-card.sec, .clock-colon.sec { display: none; }
-    .stocks-row { grid-template-columns: minmax(0, 1fr) 32px minmax(0, 140px) 56px; font-size: 10px; gap: 3px; }
+    .stocks-row { grid-template-columns: minmax(0, 70px) 32px minmax(0, 1fr) 56px; font-size: 10px; gap: 3px; }
     .pr-row { font-size: 7px; gap: 3px; }
     .pr-meta { font-size: 8px; gap: 4px; }
     .pr-bar { min-width: 16px; }
