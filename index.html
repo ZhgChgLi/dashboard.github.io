@@ -532,6 +532,33 @@
   .pr-meta .pr-pct.up   { color: var(--up); font-weight: 600; }
   .pr-meta .pr-pct.down { color: var(--down); font-weight: 600; }
   .pr-empty { font-size: 10px; color: var(--ink-faint); font-style: italic; }
+  /* Price-range header — keeps the column label centered while the
+   * 3D/7D/30D picker hugs the right edge of the cell. */
+  .pr-head {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 8px;
+  }
+  .pr-range-picker {
+    display: inline-flex; gap: 2px;
+  }
+  .pr-range-btn {
+    background: transparent;
+    border: 1px solid var(--hairline);
+    color: var(--ink-faint);
+    font-family: 'Source Serif 4', serif;
+    font-style: normal;
+    font-size: 9px;
+    letter-spacing: 0.08em;
+    padding: 1px 6px;
+    border-radius: 8px;
+    cursor: pointer;
+    line-height: 1.4;
+  }
+  .pr-range-btn:hover { color: var(--ink-soft); border-color: var(--ink-faint); }
+  .pr-range-btn.active {
+    background: var(--ink); color: var(--bg);
+    border-color: var(--ink);
+  }
   .stocks-row:last-child { border-bottom: none; }
   .stocks-row.head {
     font-size: 9px;
@@ -1984,9 +2011,11 @@ const STOCKS_PANEL_META = {
 //   row 2: 成本 N · 目前 N · ±pct
 // Falls back to plain "成本 N · 目前 N" when no series is available (fresh
 // listing, or upstream Web App is still on the older array shape).
-function PriceRangeCell({ series, cost, price }) {
+function PriceRangeCell({ series, cost, price, days }) {
   const arr = Array.isArray(series) ? series : [];
-  const closes = arr.map(p => Number(p.close)).filter(n => isFinite(n));
+  // Window the series to the last `days` closes — picker switches 3/7/30.
+  const sliced = days > 0 ? arr.slice(-days) : arr;
+  const closes = sliced.map(p => Number(p.close)).filter(n => isFinite(n));
   const fmt = (n) => Number(n).toLocaleString(undefined, { maximumFractionDigits: 2 });
   const hasCost = isFinite(cost) && cost > 0;
   const pctVsCost = hasCost ? ((price - cost) / cost) * 100 : null;
@@ -2005,10 +2034,14 @@ function PriceRangeCell({ series, cost, price }) {
       </div>
     );
   }
-  // Anchor the bar to data alone — including cost would distort the range
-  // for deeply unrealized positions and crush the current-price dot.
-  const min = Math.min(...closes);
-  const max = Math.max(...closes);
+  // Anchor the bar's left edge at min(closes, cost) and right edge at
+  // max(closes, cost) so the cost tick always lands inside the bar even
+  // for deeply unrealized positions. Falls back to closes alone when
+  // cost is absent.
+  const minBound = hasCost ? Math.min(...closes, cost) : Math.min(...closes);
+  const maxBound = hasCost ? Math.max(...closes, cost) : Math.max(...closes);
+  const min = minBound;
+  const max = maxBound;
   const cur = closes[closes.length - 1];
   const span = max - min;
   const clamp = (v) => span > 0 ? Math.max(0, Math.min(100, ((v - min) / span) * 100)) : 50;
@@ -2037,6 +2070,8 @@ function StocksPanel({ data, now, lastFetchedAt, fetching, market }) {
   const slice = data?.[meta.payloadKey] || {};
   const STOCK_DATA = slice.holdings || [];
   const priceSeries = slice.priceSeries || {};
+  // Range picker state — controls the close-window each PriceRangeCell uses.
+  const [rangeDays, setRangeDays] = useState(30);
   const totalValue = STOCK_DATA.reduce((s, x) => s + x.qty * x.price, 0);
   const totalCost = STOCK_DATA.reduce((s, x) => s + x.qty * (x.cost ?? 0), 0);
   // Unrealized P/L derived from cost basis vs current price — independent
@@ -2074,7 +2109,20 @@ function StocksPanel({ data, now, lastFetchedAt, fetching, market }) {
       <div className="stocks-row head">
         <span>name</span>
         <span style={{textAlign:'right'}}>持股</span>
-        <span style={{textAlign:'center'}}>成本／股價</span>
+        <span className="pr-head">
+          <span>成本／股價</span>
+          <span className="pr-range-picker" role="tablist" aria-label="price range">
+            {[3, 7, 30].map(d => (
+              <button
+                key={d}
+                type="button"
+                className={`pr-range-btn ${rangeDays === d ? 'active' : ''}`}
+                onClick={() => setRangeDays(d)}
+                aria-pressed={rangeDays === d}
+              >{d}D</button>
+            ))}
+          </span>
+        </span>
         <span style={{textAlign:'right'}}>未實現損益</span>
       </div>
       <div className="stocks-table scroll-y">
@@ -2087,7 +2135,7 @@ function StocksPanel({ data, now, lastFetchedAt, fetching, market }) {
             <div className="stocks-row" key={s.code}>
               <span className="stk-name">{s.name}</span>
               <span className="stk-num">{s.qty.toLocaleString(undefined, { maximumFractionDigits: 4 })}</span>
-              <PriceRangeCell series={series} cost={cost} price={s.price} />
+              <PriceRangeCell series={series} cost={cost} price={s.price} days={rangeDays} />
               <span className={`stk-num ${earn > 0 ? 'up' : earn < 0 ? 'down' : ''}`}>
                 {earnUp ? '+' : ''}{Math.round(earn).toLocaleString()}
               </span>
