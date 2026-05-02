@@ -2857,13 +2857,6 @@ function App() {
             const enabled = !disabledTabs.has(T.id);
             return (
               <span key={T.id} className={`tab-item ${enabled ? '' : 'tab-disabled'}`}>
-                {!T.noCycle && (
-                  <span
-                    className="tab-check"
-                    onClick={(e) => { e.stopPropagation(); toggleTabEnabled(T.id); }}
-                    title={enabled ? "停用此分頁" : "啟用此分頁"}
-                  >{enabled ? '☑' : '☐'}</span>
-                )}
                 <span
                   className={`tab-label ${i === activeIdx ? 'active' : ''}`}
                   onClick={() => handleTabClick(i)}
