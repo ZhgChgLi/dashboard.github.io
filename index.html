@@ -1157,24 +1157,21 @@
     padding: 4px 0;
   }
   .tab-label.active { color: var(--ink); font-weight: 500; }
-  .tab-label.active::before {
-    content: '';
+  .tab-label .tab-progress-track {
     position: absolute;
-    bottom: 0; left: -2px;
-    width: 14px; height: 1px;
-    background: var(--stamp);
-  }
-  .progress {
-    width: 96px;
+    bottom: 0; left: 0; right: 0;
     height: 1px;
-    background: var(--hairline);
-    position: relative;
+    background: transparent;
+    pointer-events: none;
   }
-  .progress-fill {
+  .tab-label.active .tab-progress-track {
+    background: var(--hairline);
+  }
+  .tab-label.active .tab-progress-fill {
     position: absolute;
     top: -0.5px; left: 0;
     height: 2px;
-    background: var(--ink);
+    background: var(--stamp);
     transition: width 0.1s linear;
   }
   .progress-num {
@@ -1409,7 +1406,6 @@
     .tab-check { font-size: 13px; padding: 0; }
     .tab-item { gap: 3px; }
     .progress-num { font-size: 10px; order: 2; }
-    .progress { width: 60px; order: 3; }
 
     /* — Stocks: keep all six columns visible, tighter cells — */
     .stocks-summary { gap: 16px; margin-bottom: 10px; flex-wrap: wrap; row-gap: 8px; }
@@ -2855,28 +2851,32 @@ function App() {
         <div className="tabs">
           {TABS.map((T, i) => {
             const enabled = !disabledTabs.has(T.id);
+            const isActive = i === activeIdx;
             return (
               <span key={T.id} className={`tab-item ${enabled ? '' : 'tab-disabled'}`}>
+                {!T.noCycle && (
+                  <span
+                    className="tab-check"
+                    onClick={(e) => { e.stopPropagation(); toggleTabEnabled(T.id); }}
+                    title={enabled ? "停用此分頁" : "啟用此分頁"}
+                  >{enabled ? '☑' : '☐'}</span>
+                )}
                 <span
-                  className={`tab-label ${i === activeIdx ? 'active' : ''}`}
+                  className={`tab-label ${isActive ? 'active' : ''}`}
                   onClick={() => handleTabClick(i)}
-                  onDoubleClick={(e) => {
-                    if (T.noCycle) return;
-                    e.stopPropagation();
-                    toggleTabEnabled(T.id);
-                  }}
-                  title={T.noCycle ? undefined : (enabled ? "雙擊停用此分頁" : "雙擊啟用此分頁")}
                 >
                   {T.label}
+                  {isActive && (
+                    <span className="tab-progress-track">
+                      <span className="tab-progress-fill" style={{ width: `${progress * 100}%` }}></span>
+                    </span>
+                  )}
                 </span>
               </span>
             );
           })}
         </div>
         <span className="progress-num">{String(activeIdx + 1).padStart(2, '0')}/{String(TABS.length).padStart(2, '0')}</span>
-        <div className="progress">
-          <div className="progress-fill" style={{ width: `${progress * 100}%` }}></div>
-        </div>
       </div>
     </>
   );
