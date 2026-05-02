@@ -2860,6 +2860,12 @@ function App() {
                 <span
                   className={`tab-label ${i === activeIdx ? 'active' : ''}`}
                   onClick={() => handleTabClick(i)}
+                  onDoubleClick={(e) => {
+                    if (T.noCycle) return;
+                    e.stopPropagation();
+                    toggleTabEnabled(T.id);
+                  }}
+                  title={T.noCycle ? undefined : (enabled ? "雙擊停用此分頁" : "雙擊啟用此分頁")}
                 >
                   {T.label}
                 </span>
