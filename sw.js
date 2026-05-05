@@ -12,7 +12,7 @@
 //
 // Bump CACHE_VERSION when you change static assets to force clients to refresh.
 
-const CACHE_VERSION = "v16";
+const CACHE_VERSION = "v17";
 const STATIC_CACHE = "dashboard-static-" + CACHE_VERSION;
 const PRECACHE_URLS = [
   "./",

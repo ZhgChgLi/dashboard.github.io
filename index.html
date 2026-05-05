@@ -2180,7 +2180,7 @@ function GAPanel({ data, now, lastFetchedAt, fetching }) {
       <div className="panel-head">
         <span className="panel-title">流　量</span>
         <span className="panel-title-en">
-          {refreshCountdown(GA_LIVE.refreshAt, now, lastFetchedAt, fetching) || "Web Analytics · GA4"}
+          {refreshCountdown(data?.ga?.refreshAt, now, lastFetchedAt, fetching) || "Web Analytics · GA4"}
         </span>
       </div>
       <div className="ga-split">
