@@ -1824,19 +1824,15 @@ window.addEventListener('load', function () {
   setTimeout(function () { window.scrollTo(0, 1); }, 0);
 });
 
-// Hard refresh: ask GAS to flush its caches, drop SW + browser caches, reload.
+// Hard refresh: drop SW + browser caches, reload. Server-side data
+// freshness is owned by the GAS scheduler (1-min cron) — this button
+// is purely a "reinstall the front-end" escape hatch.
 document.addEventListener('DOMContentLoaded', function () {
   var btn = document.getElementById('refresh-btn');
   if (!btn) return;
   btn.addEventListener('click', async function () {
     btn.classList.add('spinning');
     try {
-      var key = localStorage.getItem('DASHBOARD_KEY');
-      if (key) {
-        var url = 'https://script.google.com/macros/s/AKfycbxJoTtqTisPq8ZjJvSBzqAkQ8UIVc5XS9JdbHggmV4vGQ45paDCXYpNNgQwEr7VPaPxGw/exec'
-                + '?key=' + encodeURIComponent(key) + '&refresh=1';
-        try { await fetch(url, { redirect: 'follow' }); } catch (e) { console.warn('[refresh] gas flush failed', e); }
-      }
       if (navigator.serviceWorker) {
         var regs = await navigator.serviceWorker.getRegistrations();
         await Promise.all(regs.map(function (r) { return r.unregister(); }));
@@ -2720,7 +2716,7 @@ const TABS = [
 ];
 const TAB_DURATION = 15000;
 
-const POLL_INTERVAL_MS = 30_000; // 30s — server caches buildAll_ payload for 60s, so this is cheap
+const POLL_INTERVAL_MS = 60_000; // 1 min — matches the GAS scheduler tick; doGet is a cheap cache read
 
 function SetupError({ kind }) {
   const [val, setVal] = useState("");
@@ -2952,11 +2948,9 @@ function App() {
     const id = setInterval(() => tryFetch(), POLL_INTERVAL_MS);
 
     // iOS/Android suspend timers when the tab is hidden. Refetch on resume
-    // so coming back to the dashboard always pulls fresh data — no page or
-    // SW reload, just the JSON. The SW now does stale-while-revalidate, so
-    // we don't bust the cache: returning users see the cached payload
-    // *instantly* and the fresh response arrives in the background and
-    // updates state via the `data-fresh` postMessage.
+    // so coming back to the dashboard always pulls fresh data — no page
+    // or SW reload, just the JSON. The GAS endpoint is a cheap cache
+    // read so this is fine to fire eagerly.
     const onVisibility = () => {
       if (document.visibilityState === "visible") {
         const wasHidden = hiddenSince != null;
@@ -2967,8 +2961,7 @@ function App() {
       }
     };
     const onPageShow = (e) => {
-      // BFCache restore — JS was frozen while we were away. Re-poll, but
-      // again let the SW serve cache first and revalidate in background.
+      // BFCache restore — JS was frozen while we were away. Re-poll.
       if (e?.persisted) tryFetch({ force: true });
     };
     const onFocus = () => tryFetch();
@@ -2979,25 +2972,11 @@ function App() {
     document.addEventListener("resume", onResume);    // Page Lifecycle API
     document.addEventListener("freeze", () => { hiddenSince = Date.now(); });
 
-    // SW tells us:
-    //   - 'data-stale' → it served cache because the network failed; surface
-    //     a chip so the user knows it's not the latest.
-    //   - 'data-fresh' → its background revalidate landed a new payload;
-    //     the message carries the parsed JSON inline so we update state
-    //     directly. We deliberately don't re-fetch here — that would loop
-    //     (every fetch triggers another SWR revalidate → another
-    //     'data-fresh' → another fetch → ...).
+    // SW tells us when it served a cached response because the network
+    // failed — show a chip so the user knows the data is from cache.
     const onSwMsg = (e) => {
       if (e.data?.type === "data-stale") {
         setNetError({ msg: "資料來自快取（網路問題）" });
-      } else if (e.data?.type === "data-fresh" && e.data.payload && !isEmptyPayload(e.data.payload)) {
-        const json = e.data.payload;
-        setAuthFailed(false);
-        setNetError(null);
-        setData(json);
-        setLastFetchedAt(new Date());
-        setMessage(json.message || "");
-        try { localStorage.setItem("DASHBOARD_DATA", JSON.stringify(json)); } catch (e) {}
       }
     };
     navigator.serviceWorker?.addEventListener("message", onSwMsg);

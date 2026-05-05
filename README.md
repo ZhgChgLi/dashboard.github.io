@@ -17,7 +17,7 @@ Repo Settings → Pages → Source: `main` branch / `/Page` folder.
 ## Files
 
 - `index.html` — entrypoint, registers the service worker, mounts React via Babel-standalone (no build step)
-- `sw.js` — cache-first for static assets / CDN, stale-while-revalidate for the GAS JSON endpoint (cached payload returned instantly; background revalidate ships the new JSON to the page via postMessage). Manual refresh (cache: `reload`) bypasses SWR and goes network-first.
+- `sw.js` — cache-first for static assets / CDN, network-first for the GAS JSON endpoint (the endpoint is now a cheap cache read driven by a 1-min server-side scheduler, so SWR isn't needed). On network failure the SW falls back to the cached JSON and posts `data-stale` so the UI can flag it.
 - `manifest.json` — PWA bits (install to homescreen, theme color)
 
 Bump `CACHE_VERSION` in `sw.js` whenever static assets change to force clients to refresh.
