@@ -3,14 +3,17 @@
 // Strategies:
 //   1. Static + CDN assets   → cache-first, network fallback
 //   2. Navigation (HTML)     → network-first so updates show without manual reload
-//   3. GAS JSON endpoint     → NETWORK-FIRST: prefer fresh data; only fall back
-//                              to the cache when the network throws (offline,
-//                              DNS error, etc). On fallback, postMessage
-//                              `data-stale` so the UI can show an error chip.
+//   3. GAS JSON endpoint     → STALE-WHILE-REVALIDATE: respond immediately with
+//                              the cached payload (if any), kick off a network
+//                              fetch in the background, postMessage `data-fresh`
+//                              when the new payload lands so the page can
+//                              re-read it from cache and update state without
+//                              blocking the user. On network failure with a
+//                              cached fallback, postMessage `data-stale`.
 //
 // Bump CACHE_VERSION when you change static assets to force clients to refresh.
 
-const CACHE_VERSION = "v13";
+const CACHE_VERSION = "v14";
 const STATIC_CACHE = "dashboard-static-" + CACHE_VERSION;
 const PRECACHE_URLS = [
   "./",
@@ -80,24 +83,64 @@ async function handleNetworkFirst(req) {
 
 async function handleGas(req) {
   const cache = await caches.open(STATIC_CACHE);
-  try {
-    const res = await fetch(req, { redirect: "follow" });
-    if (res && (res.ok || res.type === "opaqueredirect")) {
-      try { await cache.put(req, res.clone()); } catch (e) {}
+  // If the page asked for a fresh round-trip (cache: 'reload' on the
+  // Request), bypass SWR and behave network-first — used by the manual
+  // refresh button. Detected via the cache mode rather than a custom
+  // header so we don't have to mutate every fetch site.
+  if (req.cache === "reload" || req.cache === "no-store") {
+    try {
+      const res = await fetch(req, { redirect: "follow" });
+      if (res && (res.ok || res.type === "opaqueredirect")) {
+        try { await cache.put(req, res.clone()); } catch (e) {}
+      }
+      return res;
+    } catch (err) {
+      const cached = await cache.match(req);
+      if (cached) {
+        const clients = await self.clients.matchAll();
+        clients.forEach((c) => c.postMessage({
+          type: "data-stale",
+          reason: String((err && err.message) || err) || "network error"
+        }));
+        return cached;
+      }
+      throw err;
     }
-    return res;
-  } catch (err) {
-    const cached = await cache.match(req);
-    if (cached) {
-      const clients = await self.clients.matchAll();
-      clients.forEach((c) => c.postMessage({
-        type: "data-stale",
-        reason: String((err && err.message) || err) || "network error"
-      }));
-      return cached;
-    }
-    throw err;
   }
+
+  // SWR path: serve cached payload immediately (if any), refresh in the
+  // background. On successful revalidate, ship the parsed JSON inline via
+  // postMessage so the page updates state directly — we deliberately do
+  // NOT ask the page to re-fetch (that would loop: re-fetch → SW SWR →
+  // background fetch → another 'data-fresh' → re-fetch → ...). On
+  // network failure with a cached fallback, post 'data-stale' so the UI
+  // can show a "from cache" chip.
+  const cached = await cache.match(req);
+  const network = fetch(req, { redirect: "follow" })
+    .then(async (res) => {
+      if (res && (res.ok || res.type === "opaqueredirect")) {
+        try { await cache.put(req, res.clone()); } catch (e) {}
+        let payload = null;
+        try { payload = await res.clone().json(); } catch (e) { /* opaque or non-JSON; leave null */ }
+        const clients = await self.clients.matchAll();
+        clients.forEach((c) => c.postMessage({ type: "data-fresh", payload: payload }));
+      }
+      return res;
+    })
+    .catch(async (err) => {
+      const fallback = await cache.match(req);
+      if (fallback) {
+        const clients = await self.clients.matchAll();
+        clients.forEach((c) => c.postMessage({
+          type: "data-stale",
+          reason: String((err && err.message) || err) || "network error"
+        }));
+        return fallback;
+      }
+      throw err;
+    });
+
+  return cached || network;
 }
 
 async function handleStatic(req) {

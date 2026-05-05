@@ -2716,7 +2716,7 @@ const TABS = [
 ];
 const TAB_DURATION = 15000;
 
-const POLL_INTERVAL_MS = 60_000; // 1 min — cache itself refreshes every 5 min server-side
+const POLL_INTERVAL_MS = 30_000; // 30s — server caches buildAll_ payload for 60s, so this is cheap
 
 function SetupError({ kind }) {
   const [val, setVal] = useState("");
@@ -2949,35 +2949,51 @@ function App() {
 
     // iOS/Android suspend timers when the tab is hidden. Refetch on resume
     // so coming back to the dashboard always pulls fresh data — no page or
-    // SW reload, just the JSON. iOS PWA in particular needs cache busting
-    // (`bust: true`) to skip any stale SW response left from before the
-    // freeze.
+    // SW reload, just the JSON. The SW now does stale-while-revalidate, so
+    // we don't bust the cache: returning users see the cached payload
+    // *instantly* and the fresh response arrives in the background and
+    // updates state via the `data-fresh` postMessage.
     const onVisibility = () => {
       if (document.visibilityState === "visible") {
         const wasHidden = hiddenSince != null;
         hiddenSince = null;
-        tryFetch({ force: wasHidden, bust: wasHidden });
+        tryFetch({ force: wasHidden });
       } else {
         hiddenSince = Date.now();
       }
     };
     const onPageShow = (e) => {
-      // BFCache restore — JS was frozen while we were away. Force fresh.
-      if (e?.persisted) tryFetch({ force: true, bust: true });
+      // BFCache restore — JS was frozen while we were away. Re-poll, but
+      // again let the SW serve cache first and revalidate in background.
+      if (e?.persisted) tryFetch({ force: true });
     };
     const onFocus = () => tryFetch();
-    const onResume = () => tryFetch({ force: true, bust: true });
+    const onResume = () => tryFetch({ force: true });
     document.addEventListener("visibilitychange", onVisibility);
     window.addEventListener("pageshow", onPageShow);
     window.addEventListener("focus", onFocus);
     document.addEventListener("resume", onResume);    // Page Lifecycle API
     document.addEventListener("freeze", () => { hiddenSince = Date.now(); });
 
-    // SW tells us when it served a stale (cached) response because the
-    // network failed — show a chip so the user knows the data is from cache.
+    // SW tells us:
+    //   - 'data-stale' → it served cache because the network failed; surface
+    //     a chip so the user knows it's not the latest.
+    //   - 'data-fresh' → its background revalidate landed a new payload;
+    //     the message carries the parsed JSON inline so we update state
+    //     directly. We deliberately don't re-fetch here — that would loop
+    //     (every fetch triggers another SWR revalidate → another
+    //     'data-fresh' → another fetch → ...).
     const onSwMsg = (e) => {
       if (e.data?.type === "data-stale") {
         setNetError({ msg: "資料來自快取（網路問題）" });
+      } else if (e.data?.type === "data-fresh" && e.data.payload && !isEmptyPayload(e.data.payload)) {
+        const json = e.data.payload;
+        setAuthFailed(false);
+        setNetError(null);
+        setData(json);
+        setLastFetchedAt(new Date());
+        setMessage(json.message || "");
+        try { localStorage.setItem("DASHBOARD_DATA", JSON.stringify(json)); } catch (e) {}
       }
     };
     navigator.serviceWorker?.addEventListener("message", onSwMsg);
