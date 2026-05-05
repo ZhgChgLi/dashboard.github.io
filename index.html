@@ -1868,17 +1868,21 @@ const { useState, useEffect, useRef, useMemo } = React;
 // timestamp. `lastFetchedAt` (Date|null) is prepended so the user can
 // see when the JSON was last successfully pulled. Fed by the parent
 // <App>'s `now` clock so it ticks every second.
+//
+// "更新中…" is shown ONLY on a true cold start (no payload yet). Once
+// we have data, every subsequent poll / SWR revalidate keeps the
+// timestamp + countdown visible so the panel doesn't flicker into a
+// loading state every 30 s — the data on screen is still valid; it's
+// just being refreshed in the background.
 function refreshCountdown(refreshAt, now, lastFetchedAt, fetching) {
-  const prefix = lastFetchedAt
-    ? `${pad2(lastFetchedAt.getHours())}:${pad2(lastFetchedAt.getMinutes())}:${pad2(lastFetchedAt.getSeconds())} · `
-    : "";
-  if (fetching) return prefix + "更新中…";
-  if (!refreshAt) return prefix || null;
+  if (!lastFetchedAt) return fetching ? "更新中…" : null;
+  const prefix = `${pad2(lastFetchedAt.getHours())}:${pad2(lastFetchedAt.getMinutes())}:${pad2(lastFetchedAt.getSeconds())}`;
+  if (!refreshAt) return prefix;
   const ms = refreshAt - now.getTime();
-  if (ms <= 0) return prefix + "更新中…";
+  if (ms <= 0) return prefix;
   const total = Math.ceil(ms / 1000);
   const m = Math.floor(total / 60), s = total % 60;
-  return `${prefix}下次更新 ${pad2(m)}:${pad2(s)}`;
+  return `${prefix} · 下次更新 ${pad2(m)}:${pad2(s)}`;
 }
 function pad2(n) { return String(n).padStart(2, '0'); }
 
