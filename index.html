@@ -1865,17 +1865,18 @@ const { useState, useEffect, useRef, useMemo } = React;
 // see when the JSON was last successfully pulled. Fed by the parent
 // <App>'s `now` clock so it ticks every second.
 //
-// "更新中…" is shown ONLY on a true cold start (no payload yet). Once
-// we have data, every subsequent poll / SWR revalidate keeps the
-// timestamp + countdown visible so the panel doesn't flicker into a
-// loading state every 30 s — the data on screen is still valid; it's
-// just being refreshed in the background.
+// Display rules:
+//   • Cold start (no payload yet) → "更新中…" (or null if no fetch in flight)
+//   • Countdown still ticking      → "HH:MM:SS · 下次更新 mm:ss"
+//   • refreshAt has passed         → "HH:MM:SS · 更新中…" (server is past
+//     its scheduled rebuild moment; next poll will pick up the new value)
+//   • No refreshAt at all          → just "HH:MM:SS"
 function refreshCountdown(refreshAt, now, lastFetchedAt, fetching) {
   if (!lastFetchedAt) return fetching ? "更新中…" : null;
   const prefix = `${pad2(lastFetchedAt.getHours())}:${pad2(lastFetchedAt.getMinutes())}:${pad2(lastFetchedAt.getSeconds())}`;
   if (!refreshAt) return prefix;
   const ms = refreshAt - now.getTime();
-  if (ms <= 0) return prefix;
+  if (ms <= 0) return `${prefix} · 更新中…`;
   const total = Math.ceil(ms / 1000);
   const m = Math.floor(total / 60), s = total % 60;
   return `${prefix} · 下次更新 ${pad2(m)}:${pad2(s)}`;
