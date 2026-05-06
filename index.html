@@ -449,7 +449,11 @@
     align-items: baseline;
     gap: 24px;
     margin-bottom: 12px;
+    cursor: pointer;
+    user-select: none;
+    outline: none;
   }
+  .stocks-summary.is-masked .summary-value { letter-spacing: 0.12em; }
   .summary-block { display: flex; flex-direction: column; gap: 2px; }
   .summary-label {
     font-size: 9px;
@@ -2071,6 +2075,7 @@ function StocksPanel({ data, now, lastFetchedAt, fetching, market }) {
   const priceSeries = slice.priceSeries || {};
   // Range picker state — controls the close-window each PriceRangeCell uses.
   const [rangeDays, setRangeDays] = useState(30);
+  const [masked, setMasked] = useState(true);
   const totalValue = STOCK_DATA.reduce((s, x) => s + x.qty * x.price, 0);
   const totalCost = STOCK_DATA.reduce((s, x) => s + x.qty * (x.cost ?? 0), 0);
   // Unrealized P/L derived from cost basis vs current price — independent
@@ -2079,6 +2084,7 @@ function StocksPanel({ data, now, lastFetchedAt, fetching, market }) {
   const totalPLPct = totalCost > 0 ? (totalPL / totalCost) * 100 : 0;
   const isUp = totalPL >= 0;
   const refreshLabel = refreshCountdown(slice.refreshAt, now, lastFetchedAt, fetching) || meta.enFallback;
+  const MASK = '＊＊＊＊';
 
   return (
     <div className="tab-panel-inner">
@@ -2086,21 +2092,28 @@ function StocksPanel({ data, now, lastFetchedAt, fetching, market }) {
         <span className="panel-title">{meta.zh}</span>
         <span className="panel-title-en">{refreshLabel}</span>
       </div>
-      <div className="stocks-summary">
+      <div
+        className={`stocks-summary${masked ? ' is-masked' : ''}`}
+        role="button"
+        tabIndex={0}
+        title={masked ? '點擊顯示金額' : '點擊隱藏金額'}
+        onClick={() => setMasked(m => !m)}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setMasked(m => !m); } }}
+      >
         <div className="summary-block">
           <span className="summary-label">total value · {meta.currency}</span>
-          <span className="summary-value">{Math.round(totalValue).toLocaleString()}</span>
+          <span className="summary-value">{masked ? MASK : Math.round(totalValue).toLocaleString()}</span>
         </div>
         <div className="summary-block">
           <span className="summary-label">total cost · {meta.currency}</span>
-          <span className="summary-value">{Math.round(totalCost).toLocaleString()}</span>
+          <span className="summary-value">{masked ? MASK : Math.round(totalCost).toLocaleString()}</span>
         </div>
         <div className="summary-block">
           <span className="summary-label">unrealized · P&amp;L</span>
-          <span className={`summary-value ${isUp ? 'up' : 'down'}`}>
-            {isUp ? '+' : ''}{Math.round(totalPL).toLocaleString()}
+          <span className={`summary-value ${masked ? '' : (isUp ? 'up' : 'down')}`}>
+            {masked ? MASK : `${isUp ? '+' : ''}${Math.round(totalPL).toLocaleString()}`}
             <span style={{fontSize:14, marginLeft:8, fontWeight:400}}>
-              ({isUp ? '+' : ''}{totalPLPct.toFixed(2)}%)
+              {masked ? '' : `(${isUp ? '+' : ''}${totalPLPct.toFixed(2)}%)`}
             </span>
           </span>
         </div>
@@ -2135,8 +2148,8 @@ function StocksPanel({ data, now, lastFetchedAt, fetching, market }) {
               <span className="stk-name">{s.name}</span>
               <span className="stk-num">{s.qty.toLocaleString(undefined, { maximumFractionDigits: 4 })}</span>
               <PriceRangeCell series={series} cost={cost} price={s.price} days={rangeDays} />
-              <span className={`stk-num ${earn > 0 ? 'up' : earn < 0 ? 'down' : ''}`}>
-                {earnUp ? '+' : ''}{Math.round(earn).toLocaleString()}
+              <span className={`stk-num ${masked ? '' : (earn > 0 ? 'up' : earn < 0 ? 'down' : '')}`}>
+                {masked ? MASK : `${earnUp ? '+' : ''}${Math.round(earn).toLocaleString()}`}
               </span>
             </div>
           );
