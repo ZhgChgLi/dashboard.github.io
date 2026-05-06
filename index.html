@@ -1015,7 +1015,7 @@
   .cal-list { display: flex; flex-direction: column; gap: 6px; }
   .cal-row {
     display: grid;
-    grid-template-columns: 90px minmax(0, 1fr) minmax(0, 1.1fr);
+    grid-template-columns: 90px minmax(0, 1fr) minmax(0, max-content);
     align-items: center;
     gap: 12px;
     padding: 4px 0;
@@ -1048,6 +1048,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
     min-width: 0;
+    max-width: 220px;
   }
 
   /* === 404 not found === */
@@ -1600,7 +1601,7 @@
     .cal-cd-num.cal-cd-tmr { font-size: 26px; }
     .cal-cd-unit { font-size: 10px; letter-spacing: 0.3em; }
     .cal-row {
-      grid-template-columns: 64px minmax(0, 1fr) minmax(0, 90px);
+      grid-template-columns: 64px minmax(0, 1fr) minmax(0, max-content);
       gap: 10px;
       font-size: 13px;
     }
