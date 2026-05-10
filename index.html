@@ -683,19 +683,27 @@
     display: flex;
     justify-content: space-between;
   }
+  /* Row metrics shared by .ga-path-row and the 5-row cap on .ga-paths-list,
+     so the cap tracks whatever font-size the breakpoint sets without manual px. */
+  .ga-section.live {
+    --ga-row-fs: 12px;
+    --ga-row-lh: 1.4;
+    --ga-row-pad-y: 3px;
+    --ga-row-border: 1px;
+    --ga-row-h: calc(var(--ga-row-fs) * var(--ga-row-lh) + var(--ga-row-pad-y) * 2 + var(--ga-row-border));
+  }
   .ga-path-row {
     display: grid;
     grid-template-columns: 1fr 48px;
     align-items: baseline;
-    padding: 3px 0;
-    font-size: 12px;
-    line-height: 1.4;
-    border-bottom: 1px dashed var(--hairline);
+    padding: var(--ga-row-pad-y) 0;
+    font-size: var(--ga-row-fs);
+    line-height: var(--ga-row-lh);
+    border-bottom: var(--ga-row-border) dashed var(--hairline);
   }
   .ga-path-row:last-child { border-bottom: none; }
-  /* Cap the top-pages scroll area to ~5 rows; anything beyond scrolls.
-     Row ≈ font-size 12 × line-height 1.4 (~17) + padding 6 + border 1 ≈ 24px. */
-  .ga-paths-list { max-height: 120px; }
+  /* Cap the top-pages scroll area to 5 rows; anything beyond scrolls. */
+  .ga-paths-list { max-height: calc(5 * var(--ga-row-h)); }
   .ga-path-name {
     font-family: 'Source Serif 4', serif;
     color: var(--ink);
@@ -1578,9 +1586,8 @@
     .ga-cum-num { font-size: 18px; }
     .ga-cum-zh { font-size: 12px; }
     .ga-cum-en { font-size: 9px; }
-    .ga-path-row { font-size: 13px; }
-    /* 5-row cap, mobile sizes: 13 × 1.4 (~19) + padding 6 + border 1 ≈ 26px. */
-    .ga-paths-list { max-height: 130px; }
+    /* Mobile font bump — cap on .ga-paths-list scales automatically via --ga-row-fs. */
+    .ga-section.live { --ga-row-fs: 13px; }
 
     /* — Weather: stack two cities — */
     .weather-split { grid-template-columns: 1fr; height: auto; }
