@@ -598,7 +598,7 @@
     gap: 0;
     height: 100%;
   }
-  .ga-section { display: flex; flex-direction: column; min-width: 0; }
+  .ga-section { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
   .ga-section.cum { padding-left: 22px; border-left: 1px solid var(--hairline); }
   .ga-section.live { padding-right: 22px; }
   .ga-section-head {
@@ -702,8 +702,11 @@
     border-bottom: var(--ga-row-border) dashed var(--hairline);
   }
   .ga-path-row:last-child { border-bottom: none; }
-  /* Cap the top-pages scroll area to 5 rows; anything beyond scrolls. */
-  .ga-paths-list { max-height: calc(5 * var(--ga-row-h)); }
+  /* Cap the top-pages scroll area to 5 rows; anything beyond scrolls.
+     +4px safety margin avoids the last row being cut by sub-pixel rounding
+     (iOS Safari was occasionally clipping ~1px off, making the 5th row
+     look broken even when no real overflow existed). */
+  .ga-paths-list { max-height: calc(5 * var(--ga-row-h) + 4px); }
   .ga-path-name {
     font-family: 'Source Serif 4', serif;
     color: var(--ink);
