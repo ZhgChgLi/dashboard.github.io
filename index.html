@@ -706,17 +706,16 @@
     border-bottom: var(--ga-row-border) dashed var(--hairline);
   }
   .ga-path-row:last-child { border-bottom: none; }
-  /* Cap the top-pages scroll area to 5 rows. iOS Safari sub-pixel rounding
-     and momentum-scroll snap-back left the 10th row half-clipped at the
-     bottom, so we add 8px breathing room (padding-bottom) inside the scroll
-     container — max-height includes that padding so the visible row count
-     stays at ~5. flex: none keeps the parent flex column from squeezing
-     it below the cap. */
+  /* Pin the top-pages scroll area to exactly 5 rows. We use a fixed height
+     (not max-height) plus flex: none so the parent flex column can't squeeze
+     it below 5 rows — previously the container was shrinking on short
+     viewports (e.g. iPhone landscape) and clipping the visible bottom row
+     mid-line. With border-box height, content area = 120px = 5 * row_h
+     exactly, anything beyond scrolls. */
   .ga-paths-list {
     flex: none;
-    max-height: calc(5 * var(--ga-row-h) + 8px);
-    padding-bottom: 8px;
-    box-sizing: content-box;
+    box-sizing: border-box;
+    height: calc(5 * var(--ga-row-h));
   }
   .ga-path-name {
     font-family: 'Source Serif 4', serif;
