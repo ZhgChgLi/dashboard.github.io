@@ -683,14 +683,16 @@
     display: flex;
     justify-content: space-between;
   }
-  /* Row metrics shared by .ga-path-row and the 5-row cap on .ga-paths-list,
-     so the cap tracks whatever font-size the breakpoint sets without manual px. */
+  /* Row metrics shared by .ga-path-row and the 5-row cap on .ga-paths-list.
+     --ga-row-h is set to an integer px to avoid sub-pixel rounding mismatch
+     between rendered row height (rounded up) and the calc-based cap, which
+     was clipping ~1px off the last visible row on iOS Safari. */
   .ga-section.live {
     --ga-row-fs: 12px;
     --ga-row-lh: 1.4;
     --ga-row-pad-y: 3px;
     --ga-row-border: 1px;
-    --ga-row-h: calc(var(--ga-row-fs) * var(--ga-row-lh) + var(--ga-row-pad-y) * 2 + var(--ga-row-border));
+    --ga-row-h: 24px;
   }
   .ga-path-row {
     display: grid;
@@ -1589,8 +1591,8 @@
     .ga-cum-num { font-size: 18px; }
     .ga-cum-zh { font-size: 12px; }
     .ga-cum-en { font-size: 9px; }
-    /* Mobile font bump — cap on .ga-paths-list scales automatically via --ga-row-fs. */
-    .ga-section.live { --ga-row-fs: 13px; }
+    /* Mobile font bump — bump --ga-row-h in lockstep (integer px, see desktop block). */
+    .ga-section.live { --ga-row-fs: 13px; --ga-row-h: 26px; }
 
     /* — Weather: stack two cities — */
     .weather-split { grid-template-columns: 1fr; height: auto; }
