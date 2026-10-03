@@ -1489,24 +1489,6 @@
   #refresh-btn.spinning svg { animation: refresh-spin 0.9s linear infinite; }
   @keyframes refresh-spin { to { transform: rotate(360deg); } }
 
-  /* Stale / error chip pinned to top-center of the device */
-  .net-chip {
-    position: absolute;
-    top: 8px; left: 50%;
-    transform: translateX(-50%);
-    z-index: 6;
-    padding: 4px 12px;
-    background: rgba(160,56,46,0.92);
-    color: #f5efde;
-    font-family: 'Source Serif 4', serif;
-    font-size: 10px;
-    letter-spacing: 0.18em;
-    font-style: italic;
-    border-radius: 12px;
-    pointer-events: none;
-    animation: chip-fade 0.4s ease;
-  }
-  @keyframes chip-fade { from { opacity: 0; transform: translate(-50%, -4px); } to { opacity: 1; transform: translateX(-50%); } }
 
   /* seconds variant — smaller subordinate flip cards */
   .flip-card.sec {
@@ -2365,6 +2347,14 @@ function fmtSpan(ms) {
   return `${Math.floor(h / 24)}d ${h % 24}h`;
 }
 
+// "15:42 · 3m ago" (today) or "10/02 15:42 · 1d 2h ago" (earlier).
+function fmtUpdated(at, now) {
+  const hm = `${pad2(at.getHours())}:${pad2(at.getMinutes())}`;
+  const sameDay = at.toDateString() === now.toDateString();
+  const when = sameDay ? hm : `${pad2(at.getMonth() + 1)}/${pad2(at.getDate())} ${hm}`;
+  return `${when} · ${fmtSpan(now - at)} ago`;
+}
+
 function AIUsageWindow({ label, win, now }) {
   const resetsAt = win?.resetsAt ? new Date(win.resetsAt) : null;
   // A window whose reset time has passed is empty again until ccz reports anew.
@@ -2384,13 +2374,17 @@ function AIUsageWindow({ label, win, now }) {
 }
 
 function AIUsagePanel({ data, now }) {
-  const accounts = data?.aiUsage?.accounts || [];
-  const error = data?.aiUsage?.error;
+  const ai = data?.aiUsage || {};
+  const accounts = ai.accounts || [];
+  const error = ai.error;
+  const fetchedAt = ai.fetchedAt ? new Date(ai.fetchedAt) : null;
   return (
     <div className="tab-panel-inner">
       <div className="panel-head">
         <span className="panel-title">AI 用量</span>
-        <span className="panel-title-en">Claude Code · 5-hour / weekly</span>
+        <span className="panel-title-en">
+          {refreshCountdown(ai.refreshAt, now, fetchedAt, ai.fetching) || "Claude Code · 5-hour / weekly"}
+        </span>
       </div>
       <div className="scroll-y ai-list">
         {!accounts.length && <div className="ai-empty">{error ? `讀取失敗 · ${error}` : "尚無資料"}</div>}
@@ -2401,7 +2395,7 @@ function AIUsagePanel({ data, now }) {
               {a.isActive && <span className="ai-badge">active</span>}
               {a.needsLogin && <span className="ai-badge warn">needs login</span>}
               {a.plan && <span className="ai-plan">{a.plan}</span>}
-              {a.updatedAt && <span className="ai-updated">{fmtSpan(now - new Date(a.updatedAt))} ago</span>}
+              {a.updatedAt && <span className="ai-updated">{fmtUpdated(new Date(a.updatedAt), now)}</span>}
             </div>
             <AIUsageWindow label="5 小時" win={a.fiveHour} now={now} />
             <AIUsageWindow label="每　週" win={a.sevenDay} now={now} />
@@ -2862,6 +2856,19 @@ const TABS = [
 const TAB_DURATION = 15000;
 
 const POLL_INTERVAL_MS = 60_000; // 1 min — matches the GAS scheduler tick; doGet is a cheap cache read
+// AI usage is read live upstream (no server cache), so poll it on its own, slower cadence.
+const AI_POLL_INTERVAL_MS = 15 * 60_000;
+
+// A card the server rebuilt with an `error` (upstream hiccup) keeps the last
+// good copy, so a transient failure never blanks a panel.
+function mergeCards(prev, next) {
+  const out = { ...next };
+  for (const k of Object.keys(next)) {
+    const p = prev?.[k], n = next[k];
+    if (n && typeof n === "object" && n.error && p && typeof p === "object" && !p.error) out[k] = p;
+  }
+  return out;
+}
 
 function SetupError({ kind }) {
   const [val, setVal] = useState("");
@@ -2952,6 +2959,13 @@ function App() {
     catch (e) { return ""; }
   });
   const [netError, setNetError] = useState(null); // { msg } | null
+  // Set once any good payload arrived (now or in a previous visit); after that an
+  // empty / failed response is treated as a transient API problem and ignored.
+  const hadDataRef = useRef(!!(window.DATA && window.DATA.generatedAt));
+  const [aiUsage, setAiUsage] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("DASHBOARD_AI_USAGE") || "null"); }
+    catch (e) { return null; }
+  });
   const [online, setOnline] = useState(() => navigator.onLine !== false);
   const [disabledTabs, setDisabledTabs] = useState(loadDisabledTabs);
   const [paused, setPaused] = useState(false);
@@ -3063,12 +3077,15 @@ function App() {
         }
         const json = await res.json();
         if (isEmptyPayload(json)) {
-          setAuthFailed(true);
+          // Only a first-ever empty response means a bad key; later ones are API hiccups.
+          if (!hadDataRef.current) setAuthFailed(true);
+          else setNetError({ msg: "empty payload" });
           return;
         }
+        hadDataRef.current = true;
         setAuthFailed(false);
         setNetError(null);
-        setData(json);
+        setData(prev => mergeCards(prev, json));
         setLastFetchedAt(new Date());
         setMessage(json.message || "");
         try { localStorage.setItem("DASHBOARD_DATA", JSON.stringify(json)); } catch (e) {}
@@ -3136,11 +3153,50 @@ function App() {
     };
   }, []);
 
+  // AI usage: its own endpoint, fetched on load, every 15 min, and on return
+  // to the page once that's due. Failures are silent: the last copy stays.
+  useEffect(() => {
+    if (!hasKey) return;
+    const key = localStorage.getItem("DASHBOARD_KEY");
+    const url = GAS_URL + "?key=" + encodeURIComponent(key) + "&action=aiUsage";
+    let lastAt = 0;
+    const fetchAi = async () => {
+      lastAt = Date.now();
+      setAiUsage(prev => prev ? { ...prev, fetching: true } : prev);
+      try {
+        // No cache-busting param: the SW is network-first for GAS and caches by URL.
+        const res = await fetch(url, { redirect: "follow", cache: "no-store" });
+        const json = res.ok ? await res.json() : null;
+        if (json?.ok && Array.isArray(json.accounts)) {
+          const next = { accounts: json.accounts, error: json.error || null,
+                         fetchedAt: Date.now(), refreshAt: Date.now() + AI_POLL_INTERVAL_MS };
+          setAiUsage(next);
+          try { localStorage.setItem("DASHBOARD_AI_USAGE", JSON.stringify(next)); } catch (e) {}
+          return;
+        }
+      } catch (e) {
+        console.error("[aiUsage]", e);
+      }
+      setAiUsage(prev => prev ? { ...prev, fetching: false, refreshAt: Date.now() + AI_POLL_INTERVAL_MS } : prev);
+    };
+    const fetchIfDue = () => { if (Date.now() - lastAt >= AI_POLL_INTERVAL_MS) fetchAi(); };
+    fetchAi();
+    const id = setInterval(fetchIfDue, 30_000);
+    const onVisibility = () => { if (document.visibilityState === "visible") fetchIfDue(); };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, []);
+
+  const viewData = useMemo(() => (aiUsage ? { ...data, aiUsage } : data), [data, aiUsage]);
+
   // tab cycler — skips tabs disabled by checkbox or whose isEmpty(data) is true.
   // Read data + disabled set via refs so a fresh fetch / toggle doesn't reset the
   // 15s tab timer.
-  const dataRef = useRef(data);
-  useEffect(() => { dataRef.current = data; }, [data]);
+  const dataRef = useRef(viewData);
+  useEffect(() => { dataRef.current = viewData; }, [viewData]);
   const disabledRef = useRef(disabledTabs);
   useEffect(() => { disabledRef.current = disabledTabs; }, [disabledTabs]);
   useEffect(() => {
@@ -3173,7 +3229,7 @@ function App() {
     for (let n = 1; n <= TABS.length; n++) {
       const next = (activeIdx + n) % TABS.length;
       const T = TABS[next];
-      if (!T.noCycle && !disabledTabs.has(T.id) && !T.isEmpty?.(data)) { setActiveIdx(next); return; }
+      if (!T.noCycle && !disabledTabs.has(T.id) && !T.isEmpty?.(viewData)) { setActiveIdx(next); return; }
     }
   }, [disabledTabs]);
 
@@ -3188,16 +3244,11 @@ function App() {
     <>
       <Header now={now} netStatus={netStatus} message={message} />
       <div className="hairline"></div>
-      {netError && (
-        <div className="net-chip" title={netError.msg}>
-          資料異常 · {netError.msg.length > 30 ? netError.msg.slice(0, 30) + "…" : netError.msg}
-        </div>
-      )}
 
       <div className="content">
         {TABS.map((T, i) => (
           <div className={`tab-panel ${i === activeIdx ? 'active' : ''}`} key={T.id}>
-            <T.Comp now={now} data={data} lastFetchedAt={lastFetchedAt} fetching={fetching} message={message} setMessage={setMessage} {...(T.props || {})} />
+            <T.Comp now={now} data={viewData} lastFetchedAt={lastFetchedAt} fetching={fetching} message={message} setMessage={setMessage} {...(T.props || {})} />
           </div>
         ))}
       </div>
