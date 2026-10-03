@@ -3066,10 +3066,10 @@ function App() {
       try {
         // iOS PWA standalone freezes JS while backgrounded. On resume we
         // want a *fresh* network round-trip — append a unique `_t=` so the
-        // SW cache key doesn't match a stale entry, and use cache:reload
-        // so any HTTP cache layer is bypassed too.
+        // SW cache key doesn't match a stale entry. No `cache: "reload"`:
+        // WebKit sends a CORS preflight for it, which GAS can't answer.
         const u = bust ? `${url}&_t=${Date.now()}` : url;
-        const res = await fetch(u, { redirect: "follow", cache: bust ? "reload" : "default" });
+        const res = await fetch(u, { redirect: "follow" });
         if (!res.ok) {
           console.error("[fetch]", res.status);
           setNetError({ msg: `HTTP ${res.status}` });
@@ -3164,8 +3164,9 @@ function App() {
       lastAt = Date.now();
       setAiUsage(prev => prev ? { ...prev, fetching: true } : prev);
       try {
-        // No cache-busting param: the SW is network-first for GAS and caches by URL.
-        const res = await fetch(url, { redirect: "follow", cache: "no-store" });
+        // No `cache` option: WebKit turns no-store/reload into a CORS preflight, which
+        // GAS can't answer, so iOS would always fail. GAS already sends no-store.
+        const res = await fetch(url, { redirect: "follow" });
         const json = res.ok ? await res.json() : null;
         if (json?.ok && Array.isArray(json.accounts)) {
           const next = { accounts: json.accounts, error: json.error || null,
