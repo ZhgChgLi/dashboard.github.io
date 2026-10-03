@@ -591,6 +591,45 @@
   .stk-num.up { color: var(--up); font-weight: 600; }
   .stk-num.down { color: var(--down); font-weight: 600; }
 
+  /* === AI USAGE === */
+  .ai-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px 22px; align-content: start; }
+  .ai-card { padding: 10px 0 12px; border-bottom: 1px dashed var(--hairline); min-width: 0; }
+  .ai-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 8px; min-width: 0; }
+  .ai-name {
+    font-family: 'Noto Serif TC', 'Source Serif 4', serif;
+    font-size: 15px; font-weight: 600; color: var(--ink);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .ai-plan, .ai-updated {
+    font-family: 'Source Serif 4', serif; font-style: italic;
+    font-size: 9px; letter-spacing: 0.2em; color: var(--ink-faint); text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .ai-updated { margin-left: auto; }
+  .ai-badge {
+    font-family: 'Source Serif 4', serif; font-size: 9px; letter-spacing: 0.2em;
+    text-transform: uppercase; padding: 1px 5px; border-radius: 2px; white-space: nowrap;
+    border: 1px solid var(--stamp); color: var(--stamp);
+  }
+  .ai-badge.warn { border-color: var(--down); color: var(--down); }
+  .ai-window { display: grid; grid-template-columns: 52px 1fr 44px; align-items: center; gap: 8px; padding: 3px 0; }
+  .ai-window-label {
+    font-family: 'Noto Serif TC', serif; font-size: 11px; color: var(--ink-soft); letter-spacing: 0.1em;
+  }
+  .ai-bar { position: relative; height: 6px; background: var(--bg-deep); border-radius: 3px; overflow: hidden; }
+  .ai-bar-fill { position: absolute; inset: 0 auto 0 0; background: var(--ink-soft); border-radius: 3px; }
+  .ai-bar-fill.warn { background: var(--stamp); }
+  .ai-bar-fill.crit { background: var(--down); }
+  .ai-pct {
+    font-family: 'Source Serif 4', serif; font-weight: 700; font-size: 15px;
+    font-feature-settings: 'lnum', 'tnum'; text-align: right; color: var(--ink);
+  }
+  .ai-reset {
+    grid-column: 2 / 4; margin-top: -2px;
+    font-family: 'Source Serif 4', serif; font-style: italic; font-size: 10px; color: var(--ink-faint);
+  }
+  .ai-empty { color: var(--ink-faint); font-style: italic; font-family: 'Source Serif 4', serif; }
+
   /* === GA === */
   .ga-split {
     display: grid;
@@ -2316,6 +2355,64 @@ function GAPanel({ data, now, lastFetchedAt, fetching }) {
 }
 
 // =================================================================
+// TAB — AI USAGE (Claude Code 5-hour / weekly usage per account, pushed by ccz)
+// =================================================================
+function fmtSpan(ms) {
+  const m = Math.max(0, Math.round(ms / 60000));
+  if (m < 60) return `${m}m`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ${m % 60}m`;
+  return `${Math.floor(h / 24)}d ${h % 24}h`;
+}
+
+function AIUsageWindow({ label, win, now }) {
+  const resetsAt = win?.resetsAt ? new Date(win.resetsAt) : null;
+  // A window whose reset time has passed is empty again until ccz reports anew.
+  const reset = resetsAt && resetsAt <= now;
+  const pct = win?.usedPercent == null ? null : (reset ? 0 : Math.min(100, Math.max(0, win.usedPercent)));
+  const level = pct == null ? "" : pct >= 90 ? "crit" : pct >= 75 ? "warn" : "";
+  return (
+    <div className="ai-window">
+      <span className="ai-window-label">{label}</span>
+      <span className="ai-bar"><span className={`ai-bar-fill ${level}`} style={{ width: `${pct ?? 0}%` }}></span></span>
+      <span className="ai-pct">{pct == null ? "–" : `${Math.round(pct)}%`}</span>
+      <span className="ai-reset">
+        {!resetsAt ? "\u00a0" : reset ? "已重置" : `${fmtSpan(resetsAt - now)} 後重置`}
+      </span>
+    </div>
+  );
+}
+
+function AIUsagePanel({ data, now }) {
+  const accounts = data?.aiUsage?.accounts || [];
+  const error = data?.aiUsage?.error;
+  return (
+    <div className="tab-panel-inner">
+      <div className="panel-head">
+        <span className="panel-title">AI 用量</span>
+        <span className="panel-title-en">Claude Code · 5-hour / weekly</span>
+      </div>
+      <div className="scroll-y ai-list">
+        {!accounts.length && <div className="ai-empty">{error ? `讀取失敗 · ${error}` : "尚無資料"}</div>}
+        {accounts.map(a => (
+          <div className="ai-card" key={a.accountUUID}>
+            <div className="ai-head">
+              <span className="ai-name" title={a.email}>{a.nickname || a.email}</span>
+              {a.isActive && <span className="ai-badge">active</span>}
+              {a.needsLogin && <span className="ai-badge warn">needs login</span>}
+              {a.plan && <span className="ai-plan">{a.plan}</span>}
+              {a.updatedAt && <span className="ai-updated">{fmtSpan(now - new Date(a.updatedAt))} ago</span>}
+            </div>
+            <AIUsageWindow label="5 小時" win={a.fiveHour} now={now} />
+            <AIUsageWindow label="每　週" win={a.sevenDay} now={now} />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// =================================================================
 // TAB 3 — WEATHER
 // =================================================================
 function WeatherIcon({ type, size = 22 }) {
@@ -2749,6 +2846,8 @@ const TABS = [
     // GA tab keeps rendering even with no realtime traffic (cumulative numbers
     // matter), so don't auto-skip.
     isEmpty: () => false },
+  { id: 'ai',      label: 'AI 用量',    en: 'AI USAGE',   Comp: AIUsagePanel,
+    isEmpty: d => !d?.aiUsage?.accounts?.length },
   { id: '404',     label: '參　考',     en: 'REFERENCE',  Comp: NotFoundPanel,
     isEmpty: d => !d?.notFound?.rows?.length && !d?.notFound?.sourceMediums?.length },
   { id: 'weather', label: '天　氣',     en: 'WEATHER',    Comp: WeatherPanel,
